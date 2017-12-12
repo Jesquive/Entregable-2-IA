@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 //#include <time>
+#include <limits>
 
 static int HOME_STAND = 3;
 static int ROAD_TRIP = 3;
@@ -73,6 +74,7 @@ Itinerario::Itinerario( vector<int> v, int n) : cantEquipos(n),   A(n, vector<in
 
   int Indicefijo = v[0];
   int ValorReal = v[0];
+
   for (int i = 0; i <  n; i++)
   {
       //El fijo con el segundo siempre van, i define la columna rde la actual ronda
@@ -124,6 +126,7 @@ Itinerario::Itinerario( vector<int> v, int n) : cantEquipos(n),   A(n, vector<in
         //std::cout << "indice alto y bajo " << indiceBajo << " -- " << indiceAlto <<'\n';
         A[v[indiceBajo]][i] =  v[indiceAlto];
         A[v[indiceAlto]][i] =  v[indiceBajo];
+
         //std::cout << "Segundas Asignaciones 1: " <<   A[v[indiceBajo]][i] << "--" <<A[v[indiceAlto]][i] << " Indices : "<< indiceBajo << "--"<< indiceAlto << "--"<< j <<'\n';
 
         /*for ( int L = 0; L < n; L++) {
@@ -426,9 +429,178 @@ void CrearPoblacion(int CantEquipos)
   }
 }
 
-Itinerario Mutacion(Itinerario recibidor, Itinerario dador, int n)
+Itinerario Mutacion(Itinerario padre1, Itinerario padre2, int n)
 {
+  std::cout << "MUTACION 1" << '\n';
+  std::vector<int> nuevoVectorItinerario;
+  std::vector<int> YaUsados;
 
+  std::cout << "$$$$$$$$$$" << '\n';
+  for (int i = 0; i < n; i++) {
+    std::cout << padre1.A[i][0] << ' ';
+  }
+  std::cout << "\n$$$$$$$$$$" << '\n';
+  std::cout << "$$$$$$$$$$" << '\n';
+  for (int i = 0; i < n; i++) {
+    std::cout << padre2.A[i][0] << ' ';
+  }
+
+  std::cout << "\n$$$$$$$$$$vectror si haay" << '\n';
+  //Lista que sera usada para saber que numeros ya he usado para no repetir
+  for (int i = 1; i < n+1; i++) {
+    YaUsados.push_back(i);
+  }
+  for (int i = 0; i < n; i++) {
+      std::cout << YaUsados[i];
+  }
+
+  std::cout << '\n';
+  std::cout << "MUTACION 2" << '\n';
+
+  //agregar genes de cada padre, sin repetir, hasta tener la cantidad necesarias
+  int cantAgregados = 0;
+  do {
+    int cualPadre = rand()%2;
+    if( cualPadre == 1)
+    {
+      int IndicedeFila= rand()%n;
+      //std::cout << "IndicedeFila A: " << IndicedeFila << '\n';
+      int GenActual = padre1.A[IndicedeFila][0];
+      //std::cout << "GEN ACTUAL A:  "<< GenActual << '\n';
+
+      if(sgn(GenActual) == -1) {
+        GenActual = (-GenActual)-1;
+      } else{
+        GenActual -= 1;
+      }
+
+      //Si no esta usado, agregarlo
+      if(YaUsados[GenActual] != -1)
+      {
+        YaUsados[GenActual] = -1;
+        nuevoVectorItinerario.push_back(GenActual+1);
+        cantAgregados +=1;
+        std::cout << "agregadoA : " << GenActual << '\n';
+      }
+    } else
+    {
+      int IndicedeFila= rand()%(n-1);
+      int GenActual = padre2.A[IndicedeFila][0];
+
+      if(sgn(GenActual) == -1) {
+        GenActual = (-GenActual)-1;
+      } else{
+        GenActual -= 1;
+      }
+
+      //Si no esta usado, agregarlo
+      if(YaUsados[GenActual] != -1)
+      {
+        YaUsados[GenActual] = -1;
+        nuevoVectorItinerario.push_back(GenActual+1);
+        cantAgregados +=1;
+        std::cout << "agregadoB : " << GenActual << '\n';
+      }
+    }
+  } while(cantAgregados != n);
+  /*do {
+    int random = rand()%2;
+    //Elegir al azar a uno de los padres
+    int cantGenes = rand()%3; ;
+
+    if(random == 1)
+    {
+    //std::cout << "MUTACION 3" << '\n';
+      if (cantGenes == 0) cantGenes = 1;
+      int indice = rand()%(n-1);
+      do {
+
+        int genactual = (padre1.A[0][indice]);
+        std::cout << "GEN PADRE 1 -- INDICE " <<  genactual << " -- " << indice << '\n';
+
+
+        if(sgn(genactual) == -1) {
+          genactual = (-genactual)-1;
+        } else{
+          std::cout << "GEN ACTUAL 1 " <<  genactual << '\n';
+
+          genactual -= 1;
+
+          std::cout << "GEN ACTUAL 1.2 " <<  genactual << '\n';
+
+        }
+        bool usado = false;
+        //Revisar si ya lo use
+        if (YaUsados[genactual] == -1) {
+            usado = true;
+        }
+        if (usado == false) {
+          nuevoVectorItinerario.push_back(genactual);
+          cantAgregados +=1;
+          std::cout << "MUTACION CANT AGREG " << cantAgregados << '\n';
+          YaUsados[genactual] = -1;
+        }
+
+        indice += 1;
+        cantGenes -= 1;
+      } while(cantGenes > 0);
+
+    } else
+    {
+      //std::cout << "MUTACION 4" << '\n';
+
+      if (cantGenes == 0) cantGenes = 1;
+      int indice = rand()%(n-1);
+      do {
+        int genactual = (padre2.A[0][indice]);
+        std::cout << "GEN PADRE 2 -- INDICE " <<  genactual << " -- " << indice << '\n';
+
+        if(sgn(genactual) == -1) {
+          genactual = (-genactual)-1;
+        } else{
+          std::cout << "GEN ACTUAL 2 " <<  genactual << '\n';
+          genactual -= 1;
+          std::cout << "GEN ACTUAL  2.2 " <<  genactual << '\n';
+        }
+        bool usado = false;
+        //Revisar si ya lo use
+        if (YaUsados[genactual] == -1) {
+            usado = true;
+        }
+        if (usado == false) {
+          nuevoVectorItinerario.push_back(genactual);
+          cantAgregados +=1;
+          std::cout << "MUTACION CANT AGREG" << cantAgregados << '\n';
+          YaUsados[genactual] = -1;
+        }
+
+        indice += 1;
+        cantGenes -= 1;
+        std::cout << "MUTACION 5" << '\n';
+
+      } while(cantGenes > 0);
+
+    }
+  } while(cantAgregados != (n-1)); */
+  for (int i = 0; i < n; i++) {
+    std::cout << YaUsados[i] << " " ;
+  }
+  std::cout << "\n#######" << '\n';
+std::cout << "END" << '\n';
+  for (int m = 0; m < n; m++) {
+    nuevoVectorItinerario[m] = nuevoVectorItinerario[m]-1;
+    std::cout << nuevoVectorItinerario[m] << " ";
+  }
+  std::cout << "END2" << '\n';
+
+  //Crear hijo, calcular sus valores, retornan
+  Itinerario hijo(nuevoVectorItinerario, n);
+  std::cout << "END2.5" << '\n';
+
+  hijo.CalcularPenitencia_Costo(n);
+  std::cout << "END3" << '\n';
+
+  return hijo;
 }
 
 
@@ -495,10 +667,10 @@ int main()
   //POR CANTIDAD DE GENERACIONES
   for (int i = 0; i < CANT_GENS; i++) {
     vector<Itinerario> POBLACIONNUEVA;
-    int indiceMax1;
-    int indiceMax2;
-    int max1 = 0;
-    int max2 = 0;
+    int indiceMin1;
+    int indiceMin2;
+    int min1 = numeric_limits<int>::max();
+    int min2 = numeric_limits<int>::max();
     int promedio = 0;
     int IndividuosEnPoblacionNueva = 2;
     std::cout << "ALGORTIMO 2" << '\n';
@@ -508,38 +680,50 @@ int main()
     {
       int Actual = POBLACION[j].Value;
       promedio += Actual;
-      if(Actual > max1)
+      if(Actual < min1)
       {
-        max1 = Actual;
-        indiceMax1 = j;
+        min1 = Actual;
+        indiceMin1 = j;
       }
     }
+    std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
+
     for (int j = 0; j < CANT_POBL; j++)
     {
       int Actual = POBLACION[j].Value;
-      if(Actual > max2 && Actual != max1)
+      if(Actual < min2 && Actual != min1)
       {
-        max2 = Actual;
-        indiceMax2 = j;
+        min2 = Actual;
+        indiceMin2 = j;
       }
     }
+    std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
     promedio = promedio/CANT_POBL;
-    POBLACIONNUEVA.push_back(POBLACION[indiceMax1]);
-    POBLACIONNUEVA.push_back(POBLACION[indiceMax2]);
-    std::cout << "ALGORTIMO 3" << '\n';
+    POBLACIONNUEVA.push_back(POBLACION[indiceMin1]);
+    POBLACIONNUEVA.push_back(POBLACION[indiceMin2]);
+    std::cout << "ALGORTIMO 3 Y PROMEDIO "<< promedio << '\n';
 
     //POR CANTIDAD DE INDIVIDUOS
     do {
       //Elegir 2 miembros al azar y aplicar mutacion
       int random = rand()%CANT_POBL;
       Itinerario padre1 = POBLACION[random];
+      std::cout << "ALGORTIMO 3.1" << '\n';
+
       random = rand()%CANT_POBL;
       Itinerario padre2 = POBLACION[random];
+      std::cout << "ALGORTIMO 3.2" << '\n';
+      bool hijoCreado = false;
       random = rand()%CANT_POBL;
 
       //Criterio de mutacion random>25 y si el valor de el hijo es mayor al promedio
-      if (random > 25 && (padre2.Value > promedio)) {
+      if (random > 0 && (padre2.Value > promedio) || (padre1.Value > promedio)) {
+        hijoCreado = true;
         std::cout << "MUTACION" << '\n';
+        Itinerario hijo = Mutacion(padre1,padre2,indice);
+
+        POBLACIONNUEVA.push_back(hijo);
+        IndividuosEnPoblacionNueva += 1;
 
       }
 
@@ -548,7 +732,8 @@ int main()
       //Evaluar
 
       //Agregar a La nueva poblacion
-      IndividuosEnPoblacionNueva += 1;
+
+
     } while(IndividuosEnPoblacionNueva != CANT_POBL);
     std::cout << "ALGORTIMO 4" << '\n';
 
