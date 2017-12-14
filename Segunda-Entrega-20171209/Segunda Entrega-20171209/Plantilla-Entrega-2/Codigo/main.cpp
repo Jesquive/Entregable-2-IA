@@ -14,13 +14,20 @@
 
 static int HOME_STAND = 3;
 static int ROAD_TRIP = 3;
-static int CANT_POBL = 10;
-static int CANT_GENS = 10;
+static int CANT_POBL = 15;
+static int CANT_GENS = 2;
 static std::string NL[16] = {"ATL", "NYM", "PHI", "MON", "FLA", "PIT", "CIN", "CHI", "STL", "MIL", "HOU", "COL", "SF", "SD", "LA", "ARI"};
 static std::string Super[14] = {"BFN", "AKL", "CAN", "PRE", "HLM", "SYD", "JOH", "CHC", "BRI", "DUR", "DUN", "PER", "CPT", "WLG"};
 static std::string NFL[32] = {"BOS", "MIA", "BUF", "NYJ", "CIN", "PIT", "BAL", "CLE", "IND", "JAC", "NAS", "HOU", "DEN", "SAN","KAN", "OAK", "NYG", "DAL", "WAS", "PHI", "CHI", "MIN", "DET", "GBY", "CHA", "TAM", "ATL", "NOR", "SEA", "STL", "PHO", "SFO"};
 static std::string INSTANCIA;
 static int** MATRIZDIST;
+static int MAXTEMPERATURA = 100;
+static int DISMTEMPERATURA = 10;
+static int MOV1SA = 100;
+static int MOV2SA = 85;
+static int MOV3SA = 100;
+
+
 
 int** CrearMatriz(int fila, int columna)
 {
@@ -58,19 +65,24 @@ class Itinerario
     int Penalidad;
     int Value;
     int cantEquipos;
+    vector<int> VectorGenerador;
+    vector<int> VectorGenerador2;
     vector< vector<int> > A;
-    Itinerario(vector<int> v, int n);
+    Itinerario(vector<int> v, vector<int> v2, int n);
     Itinerario(int cost, int pen, int val, int n);
     void CalcularPenitencia_Costo(int cantEq);
+    void BusquedaLocal(void);
+    void ImprimirRespuesta(int n);
 
-    //vector<int> Cromosoma(Tamano,0);
+
 };
 //Constructor inicial de poblacion
-Itinerario::Itinerario( vector<int> v, int n) : cantEquipos(n),   A(n, vector<int>(n-1))
+Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n),   A(n, vector<int>((n-1) * 2))
 {
   Costo = 0;
   Penalidad = 0;
   Value = 0;
+
 
   int Indicefijo = v[0];
   int ValorReal = v[0];
@@ -222,30 +234,279 @@ Itinerario::Itinerario( vector<int> v, int n) : cantEquipos(n),   A(n, vector<in
       }
     }
   }
+
+  VectorGenerador.swap(v);
+
+/////////////////////////////////////////////////////////////////////////////////
+  Indicefijo = v2[0];
+  ValorReal = v2[0];
+
+  for (int i = n-1; i <  (n-1)*2; i++)
+  {
+      //El fijo con el segundo siempre van, i define la columna rde la actual ronda
+      A[Indicefijo][i] = v2[1];
+      A[v2[1]][i] = ValorReal;
+      /*for ( int L = 0; L < n; L++) {
+        for (  int O = 0;O < n-1; O++) {
+          std::cout << A[L][O] << "  ";
+        }
+        std::cout << '\n';
+      }*/
+      int TEMPVALUE = 0;
+      for (int j = 2; j < (n-1); j++) {
+        int indiceBajo = 0 ;
+        //el primero con el ultimo, cerrandose
+        if(j%2 != 0)
+        {
+           indiceBajo = ((j+1)/2)+1;
+           if(indiceBajo == TEMPVALUE){
+             indiceBajo = TEMPVALUE +1;
+           }
+           if(TEMPVALUE > indiceBajo){
+             indiceBajo = TEMPVALUE+1;
+           }
+           TEMPVALUE = indiceBajo;
+        } else
+        {
+           indiceBajo = (j/2)+1;
+
+           if(indiceBajo == TEMPVALUE){
+             indiceBajo = TEMPVALUE +1;
+           }
+           if(TEMPVALUE > indiceBajo){
+             indiceBajo = TEMPVALUE+1;
+           }
+           TEMPVALUE = indiceBajo;
+        }
+
+        int indiceAlto = n - j + 1;
+
+        if(indiceAlto == indiceBajo)
+        {
+          break;
+        }
+        if(indiceAlto < indiceBajo)
+        {
+          break;
+        }
+        //std::cout << "indice alto y bajo " << indiceBajo << " -- " << indiceAlto <<'\n';
+        A[v2[indiceBajo]][i] =  v2[indiceAlto];
+        A[v2[indiceAlto]][i] =  v2[indiceBajo];
+
+        //std::cout << "Segundas Asignaciones 1: " <<   A[v[indiceBajo]][i] << "--" <<A[v[indiceAlto]][i] << " Indices : "<< indiceBajo << "--"<< indiceAlto << "--"<< j <<'\n';
+
+        /*for ( int L = 0; L < n; L++) {
+          for (  int O = 0;O < n-1; O++) {
+            std::cout << A[L][O] << "  ";
+          }
+          std::cout << '\n';
+        }*/
+      }
+    //  std::cout << "#######################" << '\n';
+      //Reorganizar el vector
+      int nuevoUltimo = v2[1];
+      for (int k = 1; k < n; k++)
+      {
+        //Cuando no se salga del largo del arreglo
+        if(k+1 != n)
+        {
+          v2[k] = v2[k+1];
+        } else
+        {
+          v2[n-1] = nuevoUltimo;
+        }
+      }
+  }
+
+  //SUMARLE 1 A TODOS
+  for ( int i = 0; i < n; i++) {
+    for (  int j = n-1; j < (n-1)*2; j++)
+    {
+      //std::cout << "print 1" << '\n';
+      A[i][j] =  (A[i][j]+1);
+    }
+  }
+
+  int SignoAPoner = 1;
+  //Cambiarle los signos SWAPHOMES
+  for ( int i = 0; i < n; i++) {
+    for (  int j = n-1; j < (n-1)*2; j++)
+    {
+      int valorActual = A[i][j];
+      //Revisa la parte anterior y pone el signo contrario
+      for (int l = 0; l < n-1; l++) {
+        int ValorAnterior = A[i][l];
+
+        //std::cout << "VALOR ANTERIOR ; "<<ValorAnterior << " VALORACTUAL " << valorActual << '\n';
+
+        if(valorActual == ValorAnterior)
+        {
+          if(sgn(ValorAnterior) == 1){
+            SignoAPoner = -1;
+          } else {
+            SignoAPoner = 1;
+          }
+          break;
+        } else if(valorActual == -ValorAnterior){
+          if(sgn(ValorAnterior) == 1){
+            SignoAPoner = -1;
+          } else {
+            SignoAPoner = 1;
+          }
+        }
+      }
+      //Cambiar Signo
+      A[i][j] = valorActual * SignoAPoner;
+
+    }
+  }
+
+  VectorGenerador2.swap(v2);
+
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < (n-1)*2; j++) {
+      std::cout << A[i][j] << ' ';
+    }
+    std::cout << '\n';
+  }
+  std::cout << "####" << '\n';
 }
 
-//Constructor
-Itinerario::Itinerario(int cost, int pen, int val, int n): cantEquipos(n),   A(n, vector<int>(n-1))
+Itinerario Mutacion(Itinerario padre1, Itinerario padre2, int n)
 {
-  Costo = cost;
-  Penalidad = pen;
-  Value = val;
-}
-void Itinerario::CalcularPenitencia_Costo(int cantEq) {
-  std::vector<int> ConCualesTermine(cantEq);
+  //std::cout << "MUTACION 1" << '\n';
+  std::vector<int> nuevoVectorItinerario;
+  std::vector<int> nuevoVectorItinerario2;
+  std::vector<int> YaUsados;
+  std::vector<int> YaUsados2;
 
+
+
+  std::cout << "\n$$$$$$$$$$ si haay" << '\n';
+  //Lista que sera usada para saber que numeros ya he usado para no repetir
+  for (int i = 1; i < n+1; i++) {
+    YaUsados.push_back(i);
+    YaUsados2.push_back(i);
+  }
+
+  //agregar genes de cada padre, sin repetir, hasta tener la cantidad necesarias
+  int cantAgregados = 0;
+  do {
+    int cualPadre = rand()%2;
+    if( cualPadre == 1)
+    {
+      int IndicedeFila= rand()%n;
+      //std::cout << "IndicedeFila A: " << IndicedeFila << '\n';
+      int GenActual = padre1.VectorGenerador[IndicedeFila];
+
+      //std::cout << "GEN ACTUAL A:  "<< GenActual << '\n';
+
+      //Si no esta usado, agregarlo
+      if(YaUsados[GenActual] != -1)
+      {
+        YaUsados[GenActual] = -1;
+        nuevoVectorItinerario.push_back(GenActual+1);
+        cantAgregados +=1;
+        //std::cout << "agregadoA : " << GenActual << '\n';
+      }
+    } else
+    {
+      int IndicedeFila= rand()%(n-1);
+      int GenActual = padre2.VectorGenerador[IndicedeFila];
+
+
+
+      //Si no esta usado, agregarlo
+      if(YaUsados[GenActual] != -1)
+      {
+        YaUsados[GenActual] = -1;
+        nuevoVectorItinerario.push_back(GenActual+1);
+        cantAgregados +=1;
+        //std::cout << "agregadoB : " << GenActual << '\n';
+      }
+    }
+  } while(cantAgregados != n);
+
+  for (int m = 0; m < n; m++) {
+    nuevoVectorItinerario[m] = nuevoVectorItinerario[m]-1;
+    //std::cout << nuevoVectorItinerario[m] << " ";
+  }
+  ///////////////////////////////////////////////////////
+  cantAgregados = 0;
+  do {
+    int cualPadre = rand()%2;
+    if( cualPadre == 1)
+    {
+      int IndicedeFila= rand()%n;
+      //std::cout << "IndicedeFila A: " << IndicedeFila << '\n';
+      int GenActual = padre1.VectorGenerador2[IndicedeFila];
+
+      //std::cout << "GEN ACTUAL A:  "<< GenActual << '\n';
+
+      //Si no esta usado, agregarlo
+      if(YaUsados2[GenActual] != -1)
+      {
+        YaUsados2[GenActual] = -1;
+        nuevoVectorItinerario2.push_back(GenActual+1);
+        //std::cout << "GENAGREGADO " << GenActual+1 << '\n';
+
+        cantAgregados +=1;
+        //std::cout << "agregadoA : " << GenActual << '\n';
+      }
+    } else
+    {
+      int IndicedeFila= rand()%(n-1);
+      int GenActual = padre2.VectorGenerador2[IndicedeFila];
+
+
+
+      //Si no esta usado, agregarlo
+      if(YaUsados2[GenActual] != -1)
+      {
+        YaUsados2[GenActual] = -1;
+        nuevoVectorItinerario2.push_back(GenActual+1);
+        //std::cout << "GENAGREGADO " << GenActual+1 << '\n';
+        cantAgregados +=1;
+        //std::cout << "agregadoB : " << GenActual << '\n';
+      }
+    }
+  } while(cantAgregados != n);
+
+  for (int m = 0; m < n; m++) {
+    nuevoVectorItinerario2[m] = nuevoVectorItinerario2[m]-1;
+    //std::cout << nuevoVectorItinerario[m] << " ";
+  }
+
+  //Crear hijo, calcular sus valores, retornan
+  Itinerario hijo(nuevoVectorItinerario, nuevoVectorItinerario2,n);
+  //std::cout << "END2.5" << '\n';
+
+  hijo.CalcularPenitencia_Costo(n);
+  //std::cout << "END3" << '\n';
+
+  return hijo;
+}
+vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
+{
+  int Costo = 0;
+  int Penalidad = 0;
+  int Value = 0;
+  vector<int> Respuesta;
 
   //PrimeraMitadDelCosto
   for (int i = 0; i < cantEq; i++) {
     //std::cout << "****************************************" << '\n';
     int DondeEstoyAhora = i;
-    for (int j = 0; j < cantEq-1; j++)
+    for (int j = 0; j < (cantEq-1)*2; j++)
      {
        //std::cout << "DondeEstoyAhora "<< DondeEstoyAhora  << '\n';
-      int indice = A[i][j];
+      int indice = aEvaluar[i][j];
+      //std::cout << "INDICE ANTES DE CAMBIO " <<indice << '\n';
+
       //EL PRIMERO
       if (j == 0) {
         if(sgn(indice)==-1){ //Soy visita, me fui de casa
+
           Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
           DondeEstoyAhora = (-indice)-1;
         }
@@ -255,6 +516,7 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
       {
          //LOS DEMAS
         if(sgn(indice)==-1){
+          //std::cout << "DONDE ESTOY AHOR E INDICE **" <<DondeEstoyAhora <<"**"<< (-indice)-1 <<'\n';
           if(DondeEstoyAhora != i){
             Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
             //std::cout << "COSTO 2.1: " << Costo << " -- indice  :" << indice << '\n';
@@ -273,80 +535,287 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
           //std::cout << "COSTO 3: " << Costo<< " -- indice  :" << indice << '\n';
         }
       }
-
-      if(j == cantEq-2)
-      {
-        ConCualesTermine[i] = (DondeEstoyAhora);
-      }
+    }
+    if (DondeEstoyAhora != i) {
+      Costo += MATRIZDIST[DondeEstoyAhora][i];
+      DondeEstoyAhora = i;
     }
     //std::cout << "Dondeqiedealfinal "<< DondeEstoyAhora  << '\n';
-  }
-
-
-  //SegundaMitadDelCosto
-  for (int i = 0; i < cantEq; i++) {
-    //std::cout << "****************************************" << '\n';
-    int DondeEstoyAhora = ConCualesTermine[i];
-    for (int j = 0; j < cantEq-1; j++)
-     {
-       //std::cout << "DondeEstoyAhora "<< DondeEstoyAhora  << '\n';
-      int indice = -(A[i][j]);
-      //EL PRIMERO
-      if (j == 0) {
-        if(sgn(indice)==-1){ //Soy visita, me fui de casa
-          Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
-          DondeEstoyAhora = (-indice)-1;
-        }
-        //std::cout << "COSTO 1: " << Costo << " -- indice  :" << indice << '\n';
-
-      } else
-      {
-         //LOS DEMAS
-        if(sgn(indice)==-1){
-          if(DondeEstoyAhora != i){
-            Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
-            //std::cout << "COSTO 2.1: " << Costo << " -- indice  :" << indice << '\n';
-            DondeEstoyAhora = (-indice)-1;
-          } else {
-            //std::cout << "MATRIZDIST[DondeEstoyAhora][(indice)-1]; " << DondeEstoyAhora[0][3] << '\n';
-            Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
-            DondeEstoyAhora =  (-indice)-1;
-            //std::cout << "COSTO 2.2: " << Costo << " -- indice  :" << indice << '\n';
-          }
-        } else if(sgn(indice) == 1){
-          if (DondeEstoyAhora != i) {
-            Costo += MATRIZDIST[DondeEstoyAhora][i];
-            DondeEstoyAhora = i;
-          }
-          //std::cout << "COSTO 3: " << Costo<< " -- indice  :" << indice << '\n';
-        }
-      }
-
-      if(j == cantEq-2)
-      {
-        Costo += MATRIZDIST[DondeEstoyAhora][i];
-      }
-    }
-    //std::cout << "Dondeqiedealfinal "<< DondeEstoyAhora  << '\n';
-  }
-
-  vector< vector<int> > ScheduleEntero(cantEq,vector<int>((cantEq-1)*2));
-  for (int i = 0; i < cantEq; i++) {
-    for (int j = 0; j < (cantEq-1) ;j++) {
-      ScheduleEntero[i][j] = A[i][j];
-    }
-  }
-  for (int i = 0; i < cantEq; i++) {
-    for (int j = cantEq-1; j < (cantEq-1)*2 ;j++) {
-      ScheduleEntero[i][j] = - A[i][j-(cantEq-1)];
-    }
   }
 
   int conthomestand=0;
   int controadtrip=0;
   for (int i = 0; i < cantEq; i++) {
     for (int j = 0; j < ((cantEq-1)*2); j++) {
-      if(sgn(ScheduleEntero[i][j]) == 1)
+      if(sgn(aEvaluar[i][j]) == 1)
+      {
+        conthomestand+=1;
+        controadtrip=0;
+        if (conthomestand > HOME_STAND) {
+          Penalidad+=1;
+          conthomestand=1;
+        }
+      } else
+      {
+        conthomestand=0;
+        controadtrip+=1;
+        if (controadtrip > ROAD_TRIP) {
+          Penalidad+=1;
+          controadtrip=1;
+        }
+      }
+    }
+  }
+
+  Value = Costo + (5000 * Penalidad);
+
+
+  Respuesta.push_back(Costo);
+  Respuesta.push_back(Penalidad);
+  Respuesta.push_back(Value);
+  return Respuesta;
+
+}
+
+void Itinerario::BusquedaLocal(void)
+{
+  //Se hara SA con 3 movimientos, teniendo mas probabilidad de elegir el mas simple per efectivo
+  int temperatura = MAXTEMPERATURA;
+  int choice = rand()%100;
+
+  //Se crea la arreglo B, la cual se le haran los cambios de los movimientos
+  // y el arreglo C que siempre tendra al mejor hasta entonces
+  vector < vector <int>> B(cantEquipos , vector<int>((cantEquipos-1)*2));
+  vector < vector <int>> C(cantEquipos , vector<int>((cantEquipos-1)*2));
+
+  //std::cout << "+++CLON+++" << '\n';
+  for (int i = 0; i < cantEquipos; i++) {
+    for (int j = 0; j < (cantEquipos-1)*2; j++) {
+      B[i][j] = A[i][j];
+      C[i][j] = A[i][j];
+      //std::cout << B[i][j] << ' ';
+    }
+    //std::cout << '\n';
+  }
+  //std::cout << "++++++++++" << '\n';
+
+  vector<int> datos; //(Costo , penalidad , value)
+  vector<int> datosC;
+  datosC.push_back(Costo);
+  datosC.push_back(Penalidad);
+  datosC.push_back(Value);
+
+  //MOVIMIENTO SWAṔHOMES
+  if(choice < MOV1SA)
+  {
+    //std::cout << "SWAPHOMES" << '\n';
+    bool BreakingPoint = false;
+
+    int VecesEstancados = 0;
+    int VecesSinCambios = 0;
+     while( VecesEstancados <= 3){
+
+      for (int k = 0; k < cantEquipos; k++) {
+
+
+        for (int l = 0; l < cantEquipos-1; l++) {
+          int indice = B[k][l];
+          int reset1 = indice;
+          int reset3;
+          int reset4;
+          int OtraCol;
+          int indice2;
+          if(sgn(indice)==-1){
+            indice = -(indice) -1 ;
+          } else {
+            indice -= 1;
+          }
+          int reset2 = B[indice][l];
+          for (int p = 0; p < (cantEquipos-1)*2; p++) {
+            if(B[k][l] == - B[k][p]){
+              OtraCol = p;
+              indice2 = B[k][p];
+              reset3 = indice2;
+              if(sgn(indice2)==-1){
+                indice2 = -(indice2) -1 ;
+              } else {
+                indice2 -= 1;
+              }
+              reset4 = B[indice2][p];
+              break;
+            }
+          }
+          //Cambiar los signos de los 2
+          //std::cout << "CAMBIO DE INDICES -- " <<-(indice) << " * " << -(B[indice][l]) << '\n';
+          B[k][l] = -(B[k][l]);
+          B[indice][l] = -(B[indice][l]);
+          B[k][OtraCol] = -(B[k][OtraCol]);
+          B[indice2][OtraCol] = -(B[indice2][OtraCol]);
+          //Recalcular costo-penalidad-value
+          //std::cout << "------------------------------------" << '\n';
+
+          //std::cout << "CALCULAR NUEVOS COSTOS" << '\n';
+          datos = CalcularPenCost(cantEquipos,B);
+          //std::cout << "COSTO NUEVO -- " << datos[0] <<'\n';
+          //std::cout << "PENALIDAD NUEVO -- " <<  datos[1]<<'\n';
+          //std::cout << "VALUE NUEVO -- " <<  datos[2]<<'\n';
+          //std::cout << "COSTO ANTIGUO -- " << datosC[0] <<'\n';
+          //std::cout << "PENALIDAD ANTIGUO -- " <<  datosC[1]<<'\n';
+          //std::cout << "VALUE ANTIGUO -- " <<  datosC[2]<<'\n';
+          //std::cout << "------------------------------------" << '\n';
+
+
+          //Comparar si mejoro
+          if (datos[2] < datosC[2]) {
+            //std::cout << "SE ENCONTRO UNO MEJOR" << '\n';
+            for (int o = 0; o < 3; o++) {
+              datosC[o] = datos[o];
+              C[k][l] = B[k][l];
+              C[indice][l] = B[indice][l];
+              C[k][OtraCol] = -(B[k][OtraCol]);
+              C[indice2][OtraCol] = -(B[indice2][OtraCol]);
+            }
+            BreakingPoint = true;
+            break;
+/*
+            std::cout << "------------------------------------" << '\n';
+            for (int q = 0; q < cantEquipos; q++) {
+              for (int w = 0; w < cantEquipos-1; w++) {
+                std::cout << C[q][w] << ' ';
+              }
+              std::cout << '\n';
+            }
+            std::cout << "----\n";
+            for (int q = 0; q < cantEquipos; q++) {
+              for (int w = 0; w < cantEquipos-1; w++) {
+                std::cout << A[q][w] << ' ';
+              }
+              std::cout << '\n';
+            }
+            std::cout << "------------------------------------" << '\n'; */
+
+          } else {
+            B[k][l] = reset1;
+            B[indice][l] = reset2 ;
+            B[k][OtraCol] = reset3;
+            B[indice2][OtraCol] = reset4;
+            VecesSinCambios += 1;
+            //std::cout << "VECES SIN CAMBIO " << VecesSinCambios<< '\n';
+          }
+
+
+          //si no mejora, resetear los valores cambiados e intentar con el proximo
+        }
+
+
+
+
+        //std::cout << "BREAKINGPOINT -- " << BreakingPoint << '\n';
+        if (VecesSinCambios >= (cantEquipos)*(cantEquipos-1)) {
+          VecesEstancados+=1;
+        }
+        if(BreakingPoint == true)
+        {
+          //std::cout << "TERMINAR CICLO" << '\n';
+          break;
+        }
+      }
+
+      //std::cout << "VECES SIN CAMBIO " << VecesSinCambios<< '\n';
+      //std::cout << "VECES ESTANCADOS " << VecesEstancados<< '\n';
+
+
+    }
+
+
+    //std::cout << "------------------------------------" << '\n';
+    //std::cout << "Costo fin " << datosC[0] <<'\n';
+    //std::cout << "pen fin " << datosC[1] <<'\n';
+    //std::cout << "value fin " << datosC[2] <<'\n';
+    Costo = datosC[0];
+    Penalidad =datosC[1];
+    Value =datosC[2];
+
+    for (int i = 0; i < cantEquipos; i++) {
+      for (int j = 0; j < (cantEquipos-1)*2; j++) {
+        A[i][j] = C[i][j];
+        //std::cout << B[i][j] << ' ';
+      }
+      //std::cout << '\n';
+    }
+
+  }
+  else if(choice < MOV2SA) //MOVSWAP ROUND
+  {
+    std::cout << "MOVSWAP ROUND" << '\n';
+
+
+  } else  //MOVSWAP TEAMS SCHEDULES
+  {
+    std::cout << "MOVSWAP TEAMS SCHEDULES" << '\n';
+
+  }
+
+
+}
+
+
+void Itinerario::CalcularPenitencia_Costo(int cantEq) {
+  //PrimeraMitadDelCosto
+  for (int i = 0; i < cantEq; i++) {
+    //std::cout << "****************************************" << '\n';
+    int DondeEstoyAhora = i;
+    for (int j = 0; j < (cantEq-1)*2; j++)
+     {
+       //std::cout << "DondeEstoyAhora "<< DondeEstoyAhora  << '\n';
+      int indice = A[i][j];
+      //std::cout << "INDICE ANTES DE CAMBIO " <<indice << '\n';
+
+      //EL PRIMERO
+      if (j == 0) {
+        if(sgn(indice)==-1){ //Soy visita, me fui de casa
+
+          Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
+          DondeEstoyAhora = (-indice)-1;
+        }
+        //std::cout << "COSTO 1: " << Costo << " -- indice  :" << indice << '\n';
+
+      } else
+      {
+         //LOS DEMAS
+        if(sgn(indice)==-1){
+          //std::cout << "DONDE ESTOY AHOR E INDICE **" <<DondeEstoyAhora <<"**"<< (-indice)-1 <<'\n';
+          if(DondeEstoyAhora != i){
+            Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
+            //std::cout << "COSTO 2.1: " << Costo << " -- indice  :" << indice << '\n';
+            DondeEstoyAhora = (-indice)-1;
+          } else {
+            //std::cout << "MATRIZDIST[DondeEstoyAhora][(indice)-1]; " << DondeEstoyAhora[0][3] << '\n';
+            Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
+            DondeEstoyAhora =  (-indice)-1;
+            //std::cout << "COSTO 2.2: " << Costo << " -- indice  :" << indice << '\n';
+          }
+        } else if(sgn(indice) == 1){
+          if (DondeEstoyAhora != i) {
+            Costo += MATRIZDIST[DondeEstoyAhora][i];
+            DondeEstoyAhora = i;
+          }
+          //std::cout << "COSTO 3: " << Costo<< " -- indice  :" << indice << '\n';
+        }
+      }
+    }
+    if (DondeEstoyAhora != i) {
+      Costo += MATRIZDIST[DondeEstoyAhora][i];
+      DondeEstoyAhora = i;
+    }
+    //std::cout << "Dondeqiedealfinal "<< DondeEstoyAhora  << '\n';
+  }
+
+  int conthomestand=0;
+  int controadtrip=0;
+  for (int i = 0; i < cantEq; i++) {
+    for (int j = 0; j < ((cantEq-1)*2); j++) {
+      if(sgn(A[i][j]) == 1)
       {
         conthomestand+=1;
         controadtrip=0;
@@ -368,6 +837,33 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
 
   Value = Costo + (5000 * Penalidad);
 }
+
+
+void Itinerario::ImprimirRespuesta(int n){
+  std::cout << "Slot  ";
+  for (int i = 0; i < n; i++) {
+    std::cout << NL[i] << "   ";
+  }
+  std::cout << '\n';
+  std::cout << "------------------------------" << '\n';
+  for (int i = 0; i < (n-1)*2; i++) {
+    std::cout << "  " << i << "  ";
+    for (int j = 0; j < n; j++) {
+      int indice = A[j][i];
+      if(sgn(indice) == -1)
+      {
+        std::cout << " " << "@"<< NL[(-indice) -1] << " ";
+      } else {
+        std::cout << " " << NL[(indice) -1] << "  ";
+
+      }
+    }
+    std::cout << '\n';
+  }
+  std::cout << "***********************************" << '\n';
+
+}
+
 
 
 static std::vector<Itinerario> POBLACION;
@@ -408,201 +904,18 @@ void CrearPoblacion(int CantEquipos)
 
   for (int j = 0; j < CANT_POBL; j++) {
     vector<int> vect(CantEquipos);
+    vector<int> vect2(CantEquipos);
     vect = fisherYatesShuffling(arreglo,CantEquipos);
-    Itinerario itinerario(vect,CantEquipos);
+    vect2 = fisherYatesShuffling(arreglo,CantEquipos);
+    Itinerario itinerario(vect,vect2,CantEquipos);
     itinerario.CalcularPenitencia_Costo(CantEquipos);
     POBLACION.push_back(itinerario);
   }
   std::cout << "$$$$$$$$$$$$$$$$$$$$$$$" << '\n';
   for (int i = 0; i < CANT_POBL; i++) {
     std::cout << "HIJO N: " << i << " COSTO : " << POBLACION[i].Costo << " Penalidad : " << POBLACION[i].Penalidad << " Valor : " << POBLACION[i].Value << '\n';
-    /*
-    for (int j = 0; j < CantEquipos; j++) {
-      for (int l = 0; l < CantEquipos -1 ; l++) {
-        //std::cout << "indice j y l" << j << "--"<< l << '\n';
-        std::cout << POBLACION[i].A[j][l] << ' ';
-      }
-      std::cout << '\n';
-    }
-    std::cout << "$$" << '\n';
-    */
   }
 }
-
-Itinerario Mutacion(Itinerario padre1, Itinerario padre2, int n)
-{
-  std::cout << "MUTACION 1" << '\n';
-  std::vector<int> nuevoVectorItinerario;
-  std::vector<int> YaUsados;
-
-  std::cout << "$$$$$$$$$$" << '\n';
-  for (int i = 0; i < n; i++) {
-    std::cout << padre1.A[i][0] << ' ';
-  }
-  std::cout << "\n$$$$$$$$$$" << '\n';
-  std::cout << "$$$$$$$$$$" << '\n';
-  for (int i = 0; i < n; i++) {
-    std::cout << padre2.A[i][0] << ' ';
-  }
-
-  std::cout << "\n$$$$$$$$$$vectror si haay" << '\n';
-  //Lista que sera usada para saber que numeros ya he usado para no repetir
-  for (int i = 1; i < n+1; i++) {
-    YaUsados.push_back(i);
-  }
-  for (int i = 0; i < n; i++) {
-      std::cout << YaUsados[i];
-  }
-
-  std::cout << '\n';
-  std::cout << "MUTACION 2" << '\n';
-
-  //agregar genes de cada padre, sin repetir, hasta tener la cantidad necesarias
-  int cantAgregados = 0;
-  do {
-    int cualPadre = rand()%2;
-    if( cualPadre == 1)
-    {
-      int IndicedeFila= rand()%n;
-      //std::cout << "IndicedeFila A: " << IndicedeFila << '\n';
-      int GenActual = padre1.A[IndicedeFila][0];
-      //std::cout << "GEN ACTUAL A:  "<< GenActual << '\n';
-
-      if(sgn(GenActual) == -1) {
-        GenActual = (-GenActual)-1;
-      } else{
-        GenActual -= 1;
-      }
-
-      //Si no esta usado, agregarlo
-      if(YaUsados[GenActual] != -1)
-      {
-        YaUsados[GenActual] = -1;
-        nuevoVectorItinerario.push_back(GenActual+1);
-        cantAgregados +=1;
-        std::cout << "agregadoA : " << GenActual << '\n';
-      }
-    } else
-    {
-      int IndicedeFila= rand()%(n-1);
-      int GenActual = padre2.A[IndicedeFila][0];
-
-      if(sgn(GenActual) == -1) {
-        GenActual = (-GenActual)-1;
-      } else{
-        GenActual -= 1;
-      }
-
-      //Si no esta usado, agregarlo
-      if(YaUsados[GenActual] != -1)
-      {
-        YaUsados[GenActual] = -1;
-        nuevoVectorItinerario.push_back(GenActual+1);
-        cantAgregados +=1;
-        std::cout << "agregadoB : " << GenActual << '\n';
-      }
-    }
-  } while(cantAgregados != n);
-  /*do {
-    int random = rand()%2;
-    //Elegir al azar a uno de los padres
-    int cantGenes = rand()%3; ;
-
-    if(random == 1)
-    {
-    //std::cout << "MUTACION 3" << '\n';
-      if (cantGenes == 0) cantGenes = 1;
-      int indice = rand()%(n-1);
-      do {
-
-        int genactual = (padre1.A[0][indice]);
-        std::cout << "GEN PADRE 1 -- INDICE " <<  genactual << " -- " << indice << '\n';
-
-
-        if(sgn(genactual) == -1) {
-          genactual = (-genactual)-1;
-        } else{
-          std::cout << "GEN ACTUAL 1 " <<  genactual << '\n';
-
-          genactual -= 1;
-
-          std::cout << "GEN ACTUAL 1.2 " <<  genactual << '\n';
-
-        }
-        bool usado = false;
-        //Revisar si ya lo use
-        if (YaUsados[genactual] == -1) {
-            usado = true;
-        }
-        if (usado == false) {
-          nuevoVectorItinerario.push_back(genactual);
-          cantAgregados +=1;
-          std::cout << "MUTACION CANT AGREG " << cantAgregados << '\n';
-          YaUsados[genactual] = -1;
-        }
-
-        indice += 1;
-        cantGenes -= 1;
-      } while(cantGenes > 0);
-
-    } else
-    {
-      //std::cout << "MUTACION 4" << '\n';
-
-      if (cantGenes == 0) cantGenes = 1;
-      int indice = rand()%(n-1);
-      do {
-        int genactual = (padre2.A[0][indice]);
-        std::cout << "GEN PADRE 2 -- INDICE " <<  genactual << " -- " << indice << '\n';
-
-        if(sgn(genactual) == -1) {
-          genactual = (-genactual)-1;
-        } else{
-          std::cout << "GEN ACTUAL 2 " <<  genactual << '\n';
-          genactual -= 1;
-          std::cout << "GEN ACTUAL  2.2 " <<  genactual << '\n';
-        }
-        bool usado = false;
-        //Revisar si ya lo use
-        if (YaUsados[genactual] == -1) {
-            usado = true;
-        }
-        if (usado == false) {
-          nuevoVectorItinerario.push_back(genactual);
-          cantAgregados +=1;
-          std::cout << "MUTACION CANT AGREG" << cantAgregados << '\n';
-          YaUsados[genactual] = -1;
-        }
-
-        indice += 1;
-        cantGenes -= 1;
-        std::cout << "MUTACION 5" << '\n';
-
-      } while(cantGenes > 0);
-
-    }
-  } while(cantAgregados != (n-1)); */
-  for (int i = 0; i < n; i++) {
-    std::cout << YaUsados[i] << " " ;
-  }
-  std::cout << "\n#######" << '\n';
-std::cout << "END" << '\n';
-  for (int m = 0; m < n; m++) {
-    nuevoVectorItinerario[m] = nuevoVectorItinerario[m]-1;
-    std::cout << nuevoVectorItinerario[m] << " ";
-  }
-  std::cout << "END2" << '\n';
-
-  //Crear hijo, calcular sus valores, retornan
-  Itinerario hijo(nuevoVectorItinerario, n);
-  std::cout << "END2.5" << '\n';
-
-  hijo.CalcularPenitencia_Costo(n);
-  std::cout << "END3" << '\n';
-
-  return hijo;
-}
-
 
 
 int main()
@@ -611,7 +924,7 @@ int main()
   string TipoDeInstancia;
   string NumeroDeInstancia;
   string filepath;
-  cout << "Insertar Instancia (NFL, NL, SUPER): ";
+  cout << "Insertar Instancia (NFL, NL, Super): ";
   cin >> TipoDeInstancia;
 
   cout << TipoDeInstancia << '\n'; //debuglog
@@ -622,7 +935,7 @@ int main()
   } else if(TipoDeInstancia.compare("NL")==0)
   {
     cout << "Insertar numero (4,6,8,10,12,14): ";
-  } else if(TipoDeInstancia.compare("SUPER")==0)
+  } else if(TipoDeInstancia.compare("Super")==0)
   {
     cout << "Insertar numero (4,6,8,10): ";
   }
@@ -663,8 +976,9 @@ int main()
   CrearPoblacion(indice);
 
   //comenzar el algoritmo
-  std::cout << "ALGORTIMO 1" << '\n';
+  //std::cout << "ALGORTIMO 1" << '\n';
   //POR CANTIDAD DE GENERACIONES
+
   for (int i = 0; i < CANT_GENS; i++) {
     vector<Itinerario> POBLACIONNUEVA;
     int indiceMin1;
@@ -673,7 +987,7 @@ int main()
     int min2 = numeric_limits<int>::max();
     int promedio = 0;
     int IndividuosEnPoblacionNueva = 2;
-    std::cout << "ALGORTIMO 2" << '\n';
+    //std::cout << "ALGORTIMO 2" << '\n';
 
     //Guardar los 2 mejores de la poblacion
     for (int j = 0; j < CANT_POBL; j++)
@@ -686,7 +1000,7 @@ int main()
         indiceMin1 = j;
       }
     }
-    std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
+    //std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
 
     for (int j = 0; j < CANT_POBL; j++)
     {
@@ -697,50 +1011,68 @@ int main()
         indiceMin2 = j;
       }
     }
-    std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
+    //std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
     promedio = promedio/CANT_POBL;
     POBLACIONNUEVA.push_back(POBLACION[indiceMin1]);
     POBLACIONNUEVA.push_back(POBLACION[indiceMin2]);
-    std::cout << "ALGORTIMO 3 Y PROMEDIO "<< promedio << '\n';
+    //std::cout << "ALGORTIMO 3 Y PROMEDIO "<< promedio << '\n';
 
     //POR CANTIDAD DE INDIVIDUOS
+    std::cout << " ################ GENERACION "<< i << "  ################"<< '\n';
+    std::cout << "HIJO ELITISTA " <<1 << " COSTO : "<< POBLACION[indiceMin1].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin1].Penalidad << " Valor : " << POBLACION[indiceMin1].Value << '\n';
+    std::cout << "HIJO ELITISTA " <<2 << " COSTO : "<< POBLACION[indiceMin2].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin2].Penalidad << " Valor : " << POBLACION[indiceMin2].Value << '\n';
+
     do {
       //Elegir 2 miembros al azar y aplicar mutacion
       int random = rand()%CANT_POBL;
       Itinerario padre1 = POBLACION[random];
-      std::cout << "ALGORTIMO 3.1" << '\n';
+      //std::cout << "ALGORTIMO 3.1" << '\n';
 
       random = rand()%CANT_POBL;
       Itinerario padre2 = POBLACION[random];
-      std::cout << "ALGORTIMO 3.2" << '\n';
+      //std::cout << "ALGORTIMO 3.2" << '\n';
       bool hijoCreado = false;
       random = rand()%CANT_POBL;
 
       //Criterio de mutacion random>25 y si el valor de el hijo es mayor al promedio
-      if (random > 0 && (padre2.Value > promedio) || (padre1.Value > promedio)) {
+      if (random > 15 && (padre2.Value < promedio) || (padre1.Value < promedio)) {
         hijoCreado = true;
-        std::cout << "MUTACION" << '\n';
+        //std::cout << "MUTACION" << '\n';
         Itinerario hijo = Mutacion(padre1,padre2,indice);
 
+        //Aplicar busqueda local al Hijo Y Evaluar
+        std::cout << "*********VALUEANTES: " << hijo.Value << '\n';
+        hijo.BusquedaLocal();
+        std::cout << "*********VALUEDESPUES: " << hijo.Value << '\n';
+
+        //Agregar a La nueva poblacion
+        std::cout << "HIJO " <<IndividuosEnPoblacionNueva+1 << " COSTO : "<< hijo.Costo <<" PENALIDAD :  "<< hijo.Penalidad << " Valor : " << hijo.Value << '\n';
         POBLACIONNUEVA.push_back(hijo);
         IndividuosEnPoblacionNueva += 1;
 
       }
 
-      //Aplicar busqueda local al Hijo
-
-      //Evaluar
-
-      //Agregar a La nueva poblacion
 
 
     } while(IndividuosEnPoblacionNueva != CANT_POBL);
-    std::cout << "ALGORTIMO 4" << '\n';
+    //std::cout << "ALGORTIMO 4" << '\n';
 
     POBLACION = POBLACIONNUEVA;
-    std::cout << "ALGORTIMO 5" << '\n';
+    //std::cout << "ALGORTIMO 5" << '\n';
 
   }
+
+  int menor = numeric_limits<int>::max();;
+  int indiceDelMenor;
+  for (size_t i = 0; i < CANT_POBL; i++) {
+    if(POBLACION[i].Value <= menor){
+      menor = POBLACION[i].Value;
+      indiceDelMenor = i;
+    }
+  }
+
+  std::cout << " \n EL MEJOR MIEMBRO DE LA ULTIMA POBLACION, TIENE UN VALOR DE : " << POBLACION[indiceDelMenor].Value << '\n';
+  POBLACION[indiceDelMenor].ImprimirRespuesta(indice);
 
   return 0;
 }
