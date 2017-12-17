@@ -14,7 +14,7 @@
 
 static int HOME_STAND = 3;
 static int ROAD_TRIP = 3;
-static int CANT_POBL = 500;
+static int CANT_POBL = 200;
 static int CANT_GENS = 10;
 static std::string NL[16] = {"ATL", "NYM", "PHI", "MON", "FLA", "PIT", "CIN", "CHI", "STL", "MIL", "HOU", "COL", "SF", "SD", "LA", "ARI"};
 static std::string Super[14] = {"BFN", "AKL", "CAN", "PRE", "HLM", "SYD", "JOH", "CHC", "BRI", "DUR", "DUN", "PER", "CPT", "WLG"};
@@ -372,7 +372,6 @@ Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n), 
     //std::cout << "cols " <<A[i][col1] << " " <<A[i][col2] << '\n';
     if(A[i][col1] == -A[i][col2]){
       cantRepetears += 1;
-      std::cout << "repetears--------------------------------------" << '\n';
     }
   }
   if (cantRepetears > 0) {
@@ -384,12 +383,11 @@ Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n), 
         //std::cout << "cols " <<A[i][col1] << " " <<A[i][col2] << '\n';
         if(A[i][col1] == -A[i][b]){
           cantRepetearsNew += 1;
-          std::cout << "repetears--------2----------2------2--------------" << '\n';
         }
       }
 
       if (cantRepetearsNew < minCantRep) {
-        std::cout << "repetears--------3----------3------3-------------- "  << cantRepetearsNew<< '\n';
+        //std::cout << "repetears--------3----------3------3-------------- "  << cantRepetearsNew<< '\n';
         minCantRep = cantRepetearsNew;
         colAIntercambiar = b;
       }
@@ -425,7 +423,7 @@ Itinerario Mutacion(Itinerario padre1, Itinerario padre2, int n)
 
 
 
-  std::cout << "\n$$$$$$$$$$ si haay" << '\n';
+  //std::cout << "\n$$$$$$$$$$ si haay" << '\n';
   //Lista que sera usada para saber que numeros ya he usado para no repetir
   for (int i = 1; i < n+1; i++) {
     YaUsados.push_back(i);
@@ -583,7 +581,6 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
       Costo += MATRIZDIST[DondeEstoyAhora][i];
       DondeEstoyAhora = i;
     }
-    //std::cout << "Dondeqiedealfinal "<< DondeEstoyAhora  << '\n';
   }
 
   int conthomestand=0;
@@ -597,7 +594,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
         conthomestand+=1;
         controadtrip=0;
         if (conthomestand > HOME_STAND) {
-          std::cout << "home stand detectado EN FILA -->" <<i << '\n';
+          //std::cout << "home stand detectado EN FILA -->" <<i << '\n';
           Penalidad+=1;
           conthomestand-=1;
         }
@@ -606,7 +603,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
         conthomestand=0;
         controadtrip+=1;
         if (controadtrip > ROAD_TRIP) {
-          std::cout << "ROAD TRIP detectado EN FILA -->" << i<< '\n';
+          //std::cout << "ROAD TRIP detectado EN FILA -->" << i<< '\n';
           Penalidad+=1;
           controadtrip-=1;
         }
@@ -643,7 +640,6 @@ void Itinerario::SWAPHOMES(void)
   // y el arreglo C que siempre tendra al mejor hasta entonces
   vector < vector <int>> B(cantEquipos , vector<int>((cantEquipos-1)*2));
   vector < vector <int>> C(cantEquipos , vector<int>((cantEquipos-1)*2));
-
   //std::cout << "+++CLON+++" << '\n';
   for (int i = 0; i < cantEquipos; i++) {
     for (int j = 0; j < (cantEquipos-1)*2; j++) {
@@ -654,6 +650,7 @@ void Itinerario::SWAPHOMES(void)
     //std::cout << '\n';
   }
   //std::cout << "++++++++++" << '\n';
+  /*
   std::cout << "<-----------------------> " << '\n';
 
   for (int i = 0; i < cantEquipos; i++) {
@@ -663,6 +660,7 @@ void Itinerario::SWAPHOMES(void)
     std::cout << '\n';
   }
   std::cout << "<-----------------------> " << '\n';
+  */
   vector<int> datos; //(Costo , penalidad , value)
   vector<int> datosC;
   datosC.push_back(Costo);
@@ -677,6 +675,7 @@ void Itinerario::SWAPHOMES(void)
     int VecesEstancados = 0;
     int VecesSinCambios = 0;
     while( VecesEstancados <= 3){
+
       for (int k = 0; k < cantEquipos; k++) {
         for (int l = 0; l < cantEquipos-1; l++) {
           int indice = B[k][l];
@@ -691,7 +690,10 @@ void Itinerario::SWAPHOMES(void)
             indice -= 1;
           }
           int reset2 = B[indice][l];
+
           for (int p = 0; p < (cantEquipos-1)*2; p++) {
+          //  std::cout << "swaprevealer -- FOR -- B[k][l] -->" << B[k][l] << "  - B[k][p]--> " << - B[k][p]  << '\n';
+
             if(B[k][l] == - B[k][p]){
               OtraCol = p;
               indice2 = B[k][p];
@@ -705,13 +707,26 @@ void Itinerario::SWAPHOMES(void)
               break;
             }
           }
+          //std::cout << "swaprevealer -- OUTFOR" << '\n';
+
           //Cambiar los signos de los 2
           //std::cout << "CAMBIO DE INDICES -- " <<-(indice) << " * " << -(B[indice][l]) << '\n';
           B[k][l] = -(B[k][l]);
+          //std::cout << "swaprevealer -- ASIGNACION1" << '\n';
+
           B[indice][l] = -(B[indice][l]);
+
+           //std::cout << "swaprevealer -- ASIGNACION2" << '\n';
+
           B[k][OtraCol] = -(B[k][OtraCol]);
+
+          // std::cout << "swaprevealer -- ASIGNACION3" << '\n';
+
           B[indice2][OtraCol] = -(B[indice2][OtraCol]);
+
+
           //Recalcular costo-penalidad-value
+          /*
           std::cout << "-------------SWAPHOM-----------------------" << '\n';
           for (size_t i = 0; i < cantEquipos; i++) {
             for (size_t j = 0; j < (cantEquipos-1)*2; j++) {
@@ -720,7 +735,7 @@ void Itinerario::SWAPHOMES(void)
             std::cout << '\n';
           }
           std::cout << "------------------------------------" << '\n';
-
+            */
 
           //std::cout << "CALCULAR NUEVOS COSTOS" << '\n';
           //std::cout << "MODIFICAR COSTOS DE INDICES " << k << "**" <<  l<< '\n';
@@ -769,15 +784,15 @@ void Itinerario::SWAPHOMES(void)
     Penalidad =datosC[1];
     Value =datosC[2];
 
-    std::cout << "/* message */" << '\n';
+    // std::cout << "/* message */" << '\n';
     for (int i = 0; i < cantEquipos; i++) {
       for (int j = 0; j < (cantEquipos-1)*2; j++) {
         A[i][j] = C[i][j];
-        std::cout << A[i][j] << ' ';
+        //std::cout << A[i][j] << ' ';
       }
-      std::cout << '\n';
+      //std::cout << '\n';
     }
-    std::cout << "/* message */" << '\n';
+    //std::cout << "/* message */" << '\n';
 
 
   }
@@ -808,8 +823,7 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
   datosC.push_back(Value);
 
   int ColSinErrores;
-
-  std::cout << "CANTEQ --> " << cantEquipos-1 << '\n';
+  //std::cout << "CANTEQ --> " << cantEquipos-1 << '\n';
   if(y < cantEquipos-1){
 
     //Cuadrante1
@@ -819,6 +833,9 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
     int Columna2;
     if(sgn(indice) == -1){
       indice = -(indice) - 1;
+    } else
+    {
+      indice -=1;
     }
     B[x][y] = val;
 
@@ -826,16 +843,25 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
       if(C[x][i] ==  val || C[x][i] ==  -val){
         B[x][i] = temp;
         Columna2 = i;
-        std::cout << "TEMP- -> " << temp << '\n';
+        //std::cout << "TEMP- -> " << temp << '\n';
         break;
       }
     }
 
     //Agregar el primer cambio
+    int temp2 = B[indice][y];
+
+    //B[indice][y] = B[indice][Columna2];
+
+    //B[indice][Columna2] =temp2;
+
     USED[x][y] = -500;
     USED[x][Columna2] = -500;
 
+
+
     do {
+      /*
       std::cout << "°°°°°°°°°°°°°°°°°°°°°°°°" << '\n';
       for (size_t i = 0; i < cantEquipos; i++) {
         for (size_t j = 0; j < cantEquipos-1; j++) {
@@ -844,6 +870,7 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
         std::cout << '\n';
       }
       std::cout << "°°°°°°°°°°°°°°°°°°°°°°°°" << '\n';
+      */
 
       ColSinErrores = 0;
       bool flag1 = false;
@@ -916,20 +943,37 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
       }
        //TENGI EL VALOR A CAMBIAR, LA FILA DONDE CAMBIARLO Y EL VALOR QUE BUSCO.
        //BUSCO EL VALOR A TRAVES DE LA FILA Y LO INTERCAMBIO CON EL ERROR
-      std::cout << "VALOR REPETIDO -->"<< valorError<<"  VALOR FALTANTE -->" << valorFaltante<< "  FILA CON DONDE BUSCAR -->" << filaError+1<< '\n';
-      std::cout << "COLSINERR -->"<<ColSinErrores << '\n';
+      //std::cout << "VALOR REPETIDO -->"<< valorError<<"  VALOR FALTANTE -->" << valorFaltante<< "  FILA CON DONDE BUSCAR -->" << filaError+1<< '\n';
+      //std::cout << "COLSINERR -->"<<ColSinErrores << '\n';
       if (ColSinErrores == cantEquipos-1) {
-      std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
+      //std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
       }
       else {
         for (size_t colu = 0; colu < cantEquipos-1; colu++) {
           if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
-            std::cout << "cambio" << '\n';
+            //std::cout << "cambio" << '\n';
+            /*
+            int indTemp1 = B[filaError][colu];
+            if(sgn(indTemp1) == -1){
+              indTemp1 = -(indTemp1) - 1;
+            } else {indTemp1 -= 1;}
+
+            int indTemp2 = B[filaError][colError];
+            if(sgn(indTemp2) == -1){
+              indTemp2 = -(indTemp2) - 1;
+            } else {indTemp2 -= 1;}
+            */
             int valTemp =  B[filaError][colu];
+            //int valTemp2 =  B[indTemp1][colu];
+
+            //B[indTemp1][colu] = B[indTemp2][colError] ;
             B[filaError][colu] = valorError;
+            //B[indTemp2][colError] = valTemp2;
             B[filaError][colError] = valTemp;
+
             USED[filaError][colu] = -500;
             USED[filaError][colError] = -500;
+
           }
         }
       }
@@ -945,12 +989,15 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
     int Columna2;
     if(sgn(indice) == -1){
       indice = -(indice) - 1;
+    }else
+    {
+      indice -=1;
     }
     B[x][y] = val;
-    std::cout << "val- -> " << val << '\n';
+    //std::cout << "val- -> " << val << '\n';
 
     for (int i = cantEquipos-1; i < (cantEquipos-1)*2; i++) {
-      std::cout << "C[x][i]- -> " << C[x][i] << '\n';
+      //std::cout << "C[x][i]- -> " << C[x][i] << '\n';
       // 0 4 -2
       if(C[x][i] ==  val || C[x][i] ==  -val){
         B[x][i] = temp;
@@ -959,8 +1006,13 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
       }
     }
     //Agregar el primer cambio
+    //int temp2 = B[indice][y];
+    //B[indice][y] = B[indice][Columna2];
+    //B[indice][Columna2] =temp2;
     USED[x][y] = -500;
     USED[x][Columna2] = -500;
+
+    /*
     std::cout << "°°°°°°°°°°°°°°°°°°°°°°°°" << '\n';
     for (size_t i = 0; i < cantEquipos; i++) {
       for (size_t j = cantEquipos-1; j < (cantEquipos-1) * 2; j++) {
@@ -969,6 +1021,7 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
       std::cout << '\n';
     }
     std::cout << "°°°°°°°°°°°°°°°°°°°°°°°°" << '\n';
+    */
     do {
       /*
       std::cout << "°°°°°°°°°°°°°°°°°°°°°°°°" << '\n';
@@ -1059,19 +1112,81 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
       else {
         for (size_t colu = cantEquipos-1; colu < (cantEquipos-1)*2; colu++) {
           if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
-            std::cout << "cambio" << '\n';
+            //std::cout << "cambio" << '\n';
+            /*
+            int indTemp1 = B[filaError][colu];
+            if(sgn(indTemp1) == -1){
+              indTemp1 = -(indTemp1) - 1;
+            } else {indTemp1 -= 1;}
+
+            int indTemp2 = B[filaError][colError];
+            if(sgn(indTemp2) == -1){
+              indTemp2 = -(indTemp2) - 1;
+            } else {indTemp2 -= 1;}
+              */
             int valTemp =  B[filaError][colu];
+            //int valTemp2 =  B[indTemp1][colu];
+
+            //B[indTemp1][colu] = B[indTemp2][colError] ;
             B[filaError][colu] = valorError;
+            //B[indTemp2][colError] = valTemp2;
             B[filaError][colError] = valTemp;
+
             USED[filaError][colu] = -500;
             USED[filaError][colError] = -500;
+            //USED[indTemp1][colu] = -500;
+            //USED[indTemp2][colError] = -500;
           }
         }
       }
     ///// VOLVER A EMPEZAR, TERMINAR SI ES QUE NO ENCUENTRA UN VALOR ERROR
     } while(ColSinErrores < cantEquipos-1);
   }
+  /*
+  std::cout << '\n';
+  for (int i = 0; i < cantEquipos; i++) {
+    for (int j = 0; j < (cantEquipos-1)*2; j++) {
+      std::cout << B[i][j] << "   ";
+    }
+    std::cout << '\n';
+  }
+  std::cout << '\n';
+  */
+
+  for (size_t i = 0; i < cantEquipos; i++) {
+    for (size_t j = 0; j < (cantEquipos-1)*2; j++) {
+      //std::cout << USED[i][j] << "  ";
+      if(USED[i][j] == -500)
+      {
+          int indtemp = B[i][j];
+          int signTemp = -1;
+          if(sgn(indtemp) == -1){
+            signTemp = 1;
+            indtemp = -(indtemp) - 1;
+          } else {indtemp -= 1;}
+
+          B[indtemp][j] = (i+1) * signTemp;
+      }
+    }
+    //std::cout << '\n';
+  }
+  //std::cout << '\n';
+  /*
+  std::cout << "FFINALAJASDJFJASDFASD"<< '\n';
+  for (int i = 0; i < cantEquipos; i++) {
+    for (int j = 0; j < (cantEquipos-1)*2; j++) {
+      std::cout << B[i][j] << "   ";
+    }
+    std::cout << '\n';
+  }
+  std::cout << '\n';
+  */
   datos = CalcularPenCost(cantEquipos,B);
+  Costo = datos[0];
+  Penalidad = datos[0];
+  Value = datos[0];
+
+  /*
   std::cout << "FINAL, value = " << datos[2]<< '\n';
   for (size_t i = 0; i < cantEquipos; i++) {
     for (size_t j = 0; j < (cantEquipos-1)*2; j++) {
@@ -1079,8 +1194,24 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
     }
     std::cout << '\n';
   }
-
-  A.swap(B);
+  */
+  if(y < cantEquipos-1)
+  {
+    for (size_t i = 0; i < cantEquipos; i++) {
+      for (size_t j = 0; j < (cantEquipos-1); j++) {
+        A[i][j] = B[i][j];
+      }
+    }
+  } else
+  {
+    for (size_t i = 0; i < cantEquipos; i++)
+    {
+      for (size_t j = (cantEquipos-1); j < ((cantEquipos-1)*2); j++)
+       {
+        A[i][j] = B[i][j];
+       }
+    }
+  }
 
 }
 
@@ -1131,6 +1262,9 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
           //std::cout << "COSTO 3: " << Costo<< " -- indice  :" << indice << '\n';
         }
       }
+
+
+
     }
     if (DondeEstoyAhora != i) {
       Costo += MATRIZDIST[DondeEstoyAhora][i];
@@ -1379,13 +1513,38 @@ int main()
         //Aplicar busqueda local al Hijo Y Evaluar
         std::cout << "*********VALUEANTES: " << hijo.Value << '\n';
         hijo.SWAPHOMES();
-        for (int i = 0; i < indice; i++) {
-          for (int j = 0; j < (indice-1)*2; j++) {
-            std::cout << hijo.A[i][j] << "   ";
-          }
-          std::cout << '\n';
+
+
+        for (size_t i = 0; i < ((indice/2)-1); i++) {
+          int index1 = rand()%indice;
+          int index2 = rand()%(indice-1);
+          int index3 = rand()%(indice-1);
+          do {
+             index3 = rand()%(indice-1);
+          } while(index2 == index3);
+          int ValorEnIndice = hijo.A[index1][index3];
+          hijo.SWAPMATCH(index1,index2,ValorEnIndice);
         }
+
+        for (size_t i = 0; i < ((indice/2)-1); i++) {
+          int index1 = rand()%indice;
+          int index2 = (rand()%(indice-1)) +(indice-1);
+          int index3 = (rand()%(indice-1)) +(indice-1);
+          do {
+             index3 = rand()%(indice-1)+(indice-1);
+          } while(index2 == index3);
+          int ValorEnIndice = hijo.A[index1][index3];
+          hijo.SWAPMATCH(index1,index2,ValorEnIndice);
+        }
+
+
+
+
+
+        hijo.SWAPHOMES();
+
         std::cout << "*********VALUEDESPUES: " << hijo.Value << '\n';
+        hijo.CalcularPenitencia_Costo(indice);
 
         //Agregar a La nueva poblacion
         std::cout << "HIJO " <<IndividuosEnPoblacionNueva+1 << " COSTO : "<< hijo.Costo <<" PENALIDAD :  "<< hijo.Penalidad << " Valor : " << hijo.Value << '\n';
@@ -1416,20 +1575,18 @@ int main()
   std::cout << " \n EL MEJOR MIEMBRO DE LA ULTIMA POBLACION, TIENE UN VALOR DE : " << POBLACION[indiceDelMenor].Value << '\n';
   POBLACION[indiceDelMenor].ImprimirRespuesta(indice);
     std::cout << "///////////////////////////////////////" << '\n';
-  for (size_t i = 0; i < indice; i++) {
-    for (size_t j = 0; j < (indice-1)*2; j++) {
-      std::cout << "  " << POBLACION[indiceDelMenor].A[i][j] << "  ";
+    for (int i = 0; i < indice; i++) {
+      for (int j = 0; j < (indice-1)*2; j++) {
+        std::cout << POBLACION[indiceDelMenor].A[i][j] << "   ";
+      }
+      std::cout << '\n';
     }
-    std::cout << '\n';
-  }
+    std::cout << "///////////////////////////////////////" << '\n';
 
-  POBLACION[indiceDelMenor].SWAPMATCH(0,3,-3);
-  POBLACION[indiceDelMenor].SWAPMATCH(1 ,3,4);
-  POBLACION[indiceDelMenor].SWAPHOMES();
-  POBLACION[indiceDelMenor].CalcularPenitencia_Costo(indice);
+    POBLACION[indiceDelMenor].CalcularPenitencia_Costo(indice);
 
-  std::cout << " \n EL MEJOR MIEMBRO DE LA ULTIMA POBLACION, TIENE UN VALOR DE : " << POBLACION[indiceDelMenor].Value << '\n';
-  POBLACION[indiceDelMenor].ImprimirRespuesta(indice);
+
+
 
   return 0;
 }
