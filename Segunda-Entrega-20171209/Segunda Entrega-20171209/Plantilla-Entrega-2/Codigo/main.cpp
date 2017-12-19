@@ -1,17 +1,13 @@
 #include <iostream>
 #include <utility>
-//Para Strins y StringStreams
 #include <sstream>
 #include <string>
-
+#include <time.h>
 #include <fstream>
-
 #include <random>
 #include <vector>
 #include <algorithm>
-//#include <time>
 #include <limits>
-
 static int HOME_STAND = 3;
 static int ROAD_TRIP = 3;
 static int CANT_POBL = 200;
@@ -29,34 +25,6 @@ static int MOV3SA = 100;
 
 
 
-int** CrearMatriz(int fila, int columna)
-{
-  int** matriz = new int*[fila];
-  for (int i = 0; i < columna; i++) {
-    matriz[i] = new int[columna];
-  }
-  return matriz;
-}
-
-void BorrarMatriz(int** matriz,int fila)
-{
-  for (int i = 0; i < fila ; i++) {
-    delete [] matriz[i];
-  delete [] matriz;
-  }
-}
-
-int sgn(int number)
-{
-  if (number>0) {
-    return 1;
-  }
-  if (number<0) {
-    return -1;
-  }
-  return 0;
-}
-
 using namespace std;
 class Itinerario
 {
@@ -69,15 +37,19 @@ class Itinerario
     vector<int> VectorGenerador2;
     vector< vector<int> > A;
     Itinerario(vector<int> v, vector<int> v2, int n);
-    Itinerario(int cost, int pen, int val, int n);
     void CalcularPenitencia_Costo(int cantEq);
     void SWAPHOMES(void);
-    void SWAPMATCH(int x, int i, int val);
+    void SWAPMATCH(void);
     void SWAPROUNDS(void);
     void ImprimirRespuesta(int n);
 
 
 };
+
+static std::vector<Itinerario> POBLACION;
+
+
+
 //Constructor inicial de poblacion
 Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n),   A(n, vector<int>((n-1) * 2))
 {
@@ -213,15 +185,15 @@ Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n), 
       //Recorrer el arreglo por la fila, revisar si yo o el otro somos negativos
       //, si no es asi modificarme
       int Actual = A[i][j];
-      if(sgn(Actual) == -1)
+      if(Actual < 0)
       {
         int ActualPositivo = -Actual;
         int Otro = A[ActualPositivo-1][j];
 
-      } else  if(sgn(Actual) == 1)
+      } else  if(Actual > 1)
       {
         int Otro = A[Actual-1][j];
-        if (sgn(Otro) == 1)
+        if (Otro > 0)
         {
           A[i][j] = Actual * signoActual;
            A[Actual-1][j] = Otro * -signoActual;
@@ -343,14 +315,14 @@ Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n), 
 
         if(valorActual == ValorAnterior)
         {
-          if(sgn(ValorAnterior) == 1){
+          if(ValorAnterior > 0){
             SignoAPoner = -1;
           } else {
             SignoAPoner = 1;
           }
           break;
         } else if(valorActual == -ValorAnterior){
-          if(sgn(ValorAnterior) == 1){
+          if(ValorAnterior > 0){
             SignoAPoner = -1;
           } else {
             SignoAPoner = 1;
@@ -413,6 +385,9 @@ Itinerario::Itinerario( vector<int> v, vector<int> v2, int n) : cantEquipos(n), 
   ///////////////////////////
 
 }
+
+
+
 
 Itinerario Mutacion(Itinerario padre1, Itinerario padre2, int n)
 {
@@ -547,7 +522,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
 
       //EL PRIMERO
       if (j == 0) {
-        if(sgn(indice)==-1){ //Soy visita, me fui de casa
+        if(indice<0){ //Soy visita, me fui de casa
 
           Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
           DondeEstoyAhora = (-indice)-1;
@@ -557,7 +532,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
       } else
       {
          //LOS DEMAS
-        if(sgn(indice)==-1){
+        if(indice<0){
           //std::cout << "DONDE ESTOY AHOR E INDICE **" <<DondeEstoyAhora <<"**"<< (-indice)-1 <<'\n';
           if(DondeEstoyAhora != i){
             Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
@@ -569,7 +544,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
             DondeEstoyAhora =  (-indice)-1;
             //std::cout << "COSTO 2.2: " << Costo << " -- indice  :" << indice << '\n';
           }
-        } else if(sgn(indice) == 1){
+        } else if(indice > 0){
           if (DondeEstoyAhora != i) {
             Costo += MATRIZDIST[DondeEstoyAhora][i];
             DondeEstoyAhora = i;
@@ -590,7 +565,7 @@ vector<int> CalcularPenCost(int cantEq, vector<vector<int>> aEvaluar )
     conthomestand=0;
     controadtrip=0;
     for (int j = 0; j < ((cantEq-1)*2); j++) {
-      if(sgn(aEvaluar[i][j]) == 1)
+      if(aEvaluar[i][j] > 0)
       {
         conthomestand+=1;
         controadtrip=0;
@@ -662,10 +637,11 @@ void Itinerario::SWAPHOMES(void)
   {
     //SWAPHOMES/////////////////////////77
     bool BreakingPoint = false;
+
     int VecesEstancados = 0;
     int VecesSinCambios = 0;
     while( VecesEstancados <= 3){
-
+      BreakingPoint = false;
       for (int k = 0; k < cantEquipos; k++) {
         for (int l = 0; l < cantEquipos-1; l++) {
           int indice = B[k][l];
@@ -674,7 +650,7 @@ void Itinerario::SWAPHOMES(void)
           int reset4;
           int OtraCol;
           int indice2;
-          if(sgn(indice)==-1){
+          if(indice<0){
             indice = -(indice) -1 ;
           } else {
             indice -= 1;
@@ -688,7 +664,7 @@ void Itinerario::SWAPHOMES(void)
               OtraCol = p;
               indice2 = B[k][p];
               reset3 = indice2;
-              if(sgn(indice2)==-1){
+              if(indice2<0){
                 indice2 = -(indice2) -1 ;
               } else {
                 indice2 -= 1;
@@ -780,11 +756,12 @@ void Itinerario::SWAPROUNDS(void)
   datosC.push_back(Penalidad);
   datosC.push_back(Value);
 
-
   bool BreakingPoint = false;
   int VecesEstancados = 0;
   int VecesSinCambios = 0;
   while( VecesEstancados <= 2){
+      BreakingPoint = false;
+
       for (int i = 0; i < cantEquipos; i++)
       {
         for (int j = 0; j < cantEquipos-1; j++)
@@ -937,7 +914,7 @@ void Itinerario::SWAPROUNDS(void)
   }
 }
 
-void Itinerario::SWAPMATCH(int x, int y, int val){
+void Itinerario::SWAPMATCH(void){
   vector < vector <int>> B(cantEquipos , vector<int>((cantEquipos-1)*2));
   vector < vector <int>> RESET(cantEquipos , vector<int>((cantEquipos-1)*2));
   vector < vector <int>> USED(cantEquipos , vector<int>((cantEquipos-1)*2));
@@ -951,330 +928,423 @@ void Itinerario::SWAPMATCH(int x, int y, int val){
     }
     //std::cout << '\n';
   }
-
+  int ColSinErrores;
+  int VecesEstancados = 0;
+  int VecesSinCambios = 0;
   vector<int> datos; //(Costo , penalidad , value)
   vector<int> datosC;
   datosC.push_back(Costo);
   datosC.push_back(Penalidad);
   datosC.push_back(Value);
+  bool BreakingPoint = false;
 
-  int ColSinErrores;
-  //////////////////////////////////////////////////////////////////////////////
-  if(y < cantEquipos-1){
+  while (VecesEstancados <= 1) {
+    int val;
+    BreakingPoint = false;
+    VecesSinCambios = 0;
 
-    //Cuadrante1
-    //Obligatorio
-    int temp = B[x][y];
-    int indice = B[x][y];
-    int Columna2;
-    if(sgn(indice) == -1){
-      indice = -(indice) - 1;
-    } else
-    {
-      indice -=1;
-    }
-    B[x][y] = val;
+    for (int x = 0; x < cantEquipos; x++) {
 
-    for (int i = 0; i < cantEquipos-1; i++) {
-      if(RESET[x][i] ==  val || RESET[x][i] ==  -val){
-        B[x][i] = temp;
-        Columna2 = i;
-        //std::cout << "TEMP- -> " << temp << '\n';
-        break;
-      }
-    }
+      for (int y = 0; y < (cantEquipos-1)*2; y++) {
+        //obtener valor a cambiar
 
-    //Agregar el primer cambio
-    int temp2 = B[indice][y];
+        USED = B;
+        if (y < cantEquipos-1)
+        {
+          //ELEGIR PARA EL CUADRANTE 1
+          for (int p = 0; p < cantEquipos-1; p++) {
+            USED = B;
 
-    //B[indice][y] = B[indice][Columna2];
+            //Cuadrante1
+            //Obligatorio
+            int temp = B[x][y];
+            int indice = B[x][y];
+            int Columna2;
+            if(indice < 0){
+              indice = -(indice) - 1;
+            } else
+            {
+              indice -=1;
+            }
 
-    //B[indice][Columna2] =temp2;
+            if (p != y)
+            {
 
-    USED[x][y] = -500;
-    USED[x][Columna2] = -500;
+              val = B[x][p];
+              B[x][y] = val;
+              B[x][p] = temp;
+              Columna2 = p;
+              //Agregar el primer cambio
+              int temp2 = B[indice][y];
+
+              //B[indice][y] = B[indice][Columna2];
+
+              //B[indice][Columna2] =temp2;
+
+              USED[x][y] = -500;
+
+              USED[x][Columna2] = -500;
 
 
+              do {
 
-    do {
+                ColSinErrores = 0;
+                bool flag1 = false;
+                int filaError;
+                int valorError;
+                int valorFaltante;
+                int colError;
+                //Recorrer columnas, buscar el error, si pos error no esta usada, buscar el
+                //valor faltante en la fila e intercambiarlos
+                for (int i = 0; i < cantEquipos-1; i++) { //COLUMNAS
+                  std::vector<int> Encontrados(cantEquipos); //Vector de 0 que va aumentando si encuentra clones
+                  for (int j = 0; j < cantEquipos; j++) {//FILAS
 
-      ColSinErrores = 0;
-      bool flag1 = false;
-      int filaError;
-      int valorError;
-      int valorFaltante;
-      int colError;
-      //Recorrer columnas, buscar el error, si pos error no esta usada, buscar el
-      //valor faltante en la fila e intercambiarlos
-      for (int i = 0; i < cantEquipos-1; i++) { //COLUMNAS
-        std::vector<int> Encontrados(cantEquipos); //Vector de 0 que va aumentando si encuentra clones
-        for (int j = 0; j < cantEquipos; j++) {//FILAS
+                    if (USED[j][i] == -500)
+                    {
+                      int indiceDelUsado = B[j][i];
 
-          if (USED[j][i] == -500)
-          {
-            int indiceDelUsado = B[j][i];
+                      if(indiceDelUsado <0){
+                        indiceDelUsado = -(indiceDelUsado) - 1;
+                      } else {indiceDelUsado -= 1;}
 
-            if(sgn(indiceDelUsado) == -1){
-              indiceDelUsado = -(indiceDelUsado) - 1;
-            } else {indiceDelUsado -= 1;}
+                      //std::cout << "INDICE DEL USADO 1--> "<< indiceDelUsado+1  << '\n';
 
-            //std::cout << "INDICE DEL USADO 1--> "<< indiceDelUsado+1  << '\n';
+                      Encontrados[indiceDelUsado] +=1 ;
 
-            Encontrados[indiceDelUsado] +=1 ;
+                      if (Encontrados[indiceDelUsado] == 2) {
+                        colError = i;
+                        for ( int filas = 0; filas < cantEquipos; filas++) {
+                          if (B[filas][i] == B[j][i] ||  B[filas][i] == -(B[j][i])) {
+                            valorError = B[filas][i];
+                            filaError = filas;
+                            break;
+                          }
+                        }
+                      }
 
-            if (Encontrados[indiceDelUsado] == 2) {
-              colError = i;
-              for (size_t filas = 0; filas < cantEquipos; filas++) {
-                if (B[filas][i] == B[j][i] ||  B[filas][i] == -(B[j][i])) {
-                  valorError = B[filas][i];
-                  filaError = filas;
-                  break;
+                    }
+                    else
+                    {
+                      int indiceDelUsado = B[j][i];
+                      if(indiceDelUsado < 0){
+                        indiceDelUsado = -(indiceDelUsado) - 1;
+                      } else {indiceDelUsado -= 1;}
+                      //std::cout << "INDICE DEL USADO 2-2--> "<< indiceDelUsado+1  << '\n';
+
+                      Encontrados[indiceDelUsado] +=1 ;
+                      if (Encontrados[indiceDelUsado] == 2) {
+                        valorError = B[j][i];
+                        filaError = j;
+                        colError = i;
+                      }
+                    }
+                  }
+
+
+                  for (int j = 0; j < cantEquipos; j++) {
+                    //std::cout << Encontrados[j] << '/';
+                    if (Encontrados[j] == 0) {
+                      valorFaltante = j+1;
+                      flag1 = true;
+                    }
+                  }
+                  //std::cout << '\n';
+
+                  if (flag1) {
+                    break;
+                  }
+
+                  ColSinErrores +=1;
                 }
+                 //TENGI EL VALOR A CAMBIAR, LA FILA DONDE CAMBIARLO Y EL VALOR QUE BUSCO.
+                 //BUSCO EL VALOR A TRAVES DE LA FILA Y LO INTERCAMBIO CON EL ERROR
+                //std::cout << "VALOR REPETIDO -->"<< valorError<<"  VALOR FALTANTE -->" << valorFaltante<< "  FILA CON DONDE BUSCAR -->" << filaError+1<< '\n';
+                //std::cout << "COLSINERR -->"<<ColSinErrores << '\n';
+                if (ColSinErrores == cantEquipos-1) {
+                //std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
+                }
+                else {
+                  for (int colu = 0; colu < cantEquipos-1; colu++) {
+                    if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
+                      //std::cout << "cambio" << '\n';
+                      /*
+                      int indTemp1 = B[filaError][colu];
+                      if(sgn(indTemp1) == -1){
+                        indTemp1 = -(indTemp1) - 1;
+                      } else {indTemp1 -= 1;}
+
+                      int indTemp2 = B[filaError][colError];
+                      if(sgn(indTemp2) == -1){
+                        indTemp2 = -(indTemp2) - 1;
+                      } else {indTemp2 -= 1;}
+                      */
+                      int valTemp =  B[filaError][colu];
+                      //int valTemp2 =  B[indTemp1][colu];
+
+
+
+                      //B[indTemp1][colu] = B[indTemp2][colError] ;
+                      B[filaError][colu] = valorError;
+                      //B[indTemp2][colError] = valTemp2;
+                      B[filaError][colError] = valTemp;
+                      USED[filaError][colu] = -500;
+                      USED[filaError][colError] = -500;
+
+                    }
+                  }
+                }
+              ///// VOLVER A EMPEZAR, TERMINAR SI ES QUE NO ENCUENTRA UN VALOR ERROR
+              } while(ColSinErrores < cantEquipos-1);
+
+              for (int i = 0; i < cantEquipos; i++) {
+                for (int j = 0; j < (cantEquipos-1)*2; j++) {
+                  //std::cout << USED[i][j] << "  ";
+                  if(USED[i][j] == -500)
+                  {
+                      int indtemp = B[i][j];
+                      int signTemp = -1;
+                      if(indtemp <0){
+                        signTemp = 1;
+                        indtemp = -(indtemp) - 1;
+                      } else {indtemp -= 1;}
+
+                      B[indtemp][j] = (i+1) * signTemp;
+
+                  }
+                }
+                //std::cout << '\n';
               }
+
+              datos = CalcularPenCost(cantEquipos,B);
+
+              if (datos[2] < datosC[2])
+              {
+                for (int o = 0; o < 3; o++) {
+                  datosC[o] = datos[o];
+                }
+                BreakingPoint = true;
+                RESET = B;
+                break;
+              } else
+              {
+                B = RESET;
+                VecesSinCambios += 1;
+              }
+              }
+            else
+            {
+              VecesSinCambios +=1;
             }
 
           }
-          else
+
+
+
+        } else
+        {
+          //ELEGIR PARA EL CUADRANTE 2
+          for (int p = cantEquipos-1; p < (cantEquipos-1)*2; p++) {
+
+            //Cuadrante2
+            //Obligatorio
+            USED = B;
+            int temp = B[x][y];
+            int indice = B[x][y];
+            int Columna2;
+            if(indice<0){
+              indice = -(indice) - 1;
+            }else
+            {
+              indice -=1;
+            }
+            if (p != y)
+            {
+              val = B[x][p];
+
+              B[x][y] = val;
+              B[x][p] = temp;
+              Columna2 = p;
+
+
+              //Agregar el primer cambio
+              USED[x][y] = -500;
+              USED[x][Columna2] = -500;
+
+
+              do {
+
+                ColSinErrores = 0;
+                bool flag1 = false;
+                int filaError;
+                int valorError;
+                int valorFaltante;
+                int colError;
+                //Recorrer columnas, buscar el error, si pos error no esta usada, buscar el
+                //valor faltante en la fila e intercambiarlos
+                for (int i = cantEquipos-1; i < (cantEquipos-1)*2; i++) { //COLUMNAS
+                  std::vector<int> Encontrados(cantEquipos); //Vector de 0 que va aumentando si encuentra clones
+                  for (int j = 0; j < cantEquipos; j++) {//FILAS
+
+                    if (USED[j][i] == -500)
+                    {
+                      int indiceDelUsado = B[j][i];
+
+                      if(indiceDelUsado <0){
+                        indiceDelUsado = -(indiceDelUsado) - 1;
+                      } else {indiceDelUsado -= 1;}
+
+                      //std::cout << "INDICE DEL USADO 1--> "<< indiceDelUsado+1  << '\n';
+
+                      Encontrados[indiceDelUsado] +=1 ;
+
+                      if (Encontrados[indiceDelUsado] == 2)
+                      {
+                        colError = i;
+                        for (int filas = 0; filas < cantEquipos; filas++) {
+                          if (B[filas][i] == B[j][i] ||  B[filas][i] == -(B[j][i])) {
+                            valorError = B[filas][i];
+                            filaError = filas;
+                            break;
+                          }
+                        }
+                      }
+
+                    }
+                    else
+                    {
+                      int indiceDelUsado = B[j][i];
+                      if(indiceDelUsado <0){
+                        indiceDelUsado = -(indiceDelUsado) - 1;
+                      } else {indiceDelUsado -= 1;}
+                      //std::cout << "INDICE DEL USADO 2-2--> "<< indiceDelUsado+1  << '\n';
+
+                      Encontrados[indiceDelUsado] +=1 ;
+                      if (Encontrados[indiceDelUsado] == 2) {
+                        valorError = B[j][i];
+                        filaError = j;
+                        colError = i;
+                      }
+                    }
+                  }
+
+
+                  for (int j = 0; j < cantEquipos; j++) {
+                    //std::cout << Encontrados[j] << '/';
+                    if (Encontrados[j] == 0) {
+                      valorFaltante = j+1;
+                      flag1 = true;
+                    }
+                  }
+                  //std::cout << '\n';
+
+                  if (flag1) {
+                    break;
+                  }
+
+                  ColSinErrores +=1;
+                }
+
+                if (ColSinErrores == cantEquipos-1) {
+                //std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
+                }
+                else {
+                  for (int colu = cantEquipos-1; colu < (cantEquipos-1)*2; colu++) {
+                    if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
+
+                      int valTemp =  B[filaError][colu];
+                      //int valTemp2 =  B[indTemp1][colu];
+
+                      //B[indTemp1][colu] = B[indTemp2][colError] ;
+                      B[filaError][colu] = valorError;
+                      //B[indTemp2][colError] = valTemp2;
+                      B[filaError][colError] = valTemp;
+
+                      USED[filaError][colu] = -500;
+                      USED[filaError][colError] = -500;
+                      //USED[indTemp1][colu] = -500;
+                      //USED[indTemp2][colError] = -500;
+                    }
+                  }
+                }
+              ///// VOLVER A EMPEZAR, TERMINAR SI ES QUE NO ENCUENTRA UN VALOR ERROR
+              } while(ColSinErrores < cantEquipos-1);
+
+              for (int i = 0; i < cantEquipos; i++) {
+                for (int j = 0; j < (cantEquipos-1)*2; j++) {
+                  //std::cout << USED[i][j] << "  ";
+                  if(USED[i][j] == -500)
+                  {
+                      int indtemp = B[i][j];
+                      int signTemp = -1;
+                      if(indtemp <0){
+                        signTemp = 1;
+                        indtemp = -(indtemp) - 1;
+                      } else {indtemp -= 1;}
+
+                      B[indtemp][j] = (i+1) * signTemp;
+                  }
+                }
+                //std::cout << '\n';
+              }
+
+              datos = CalcularPenCost(cantEquipos,B);
+
+              if (datos[2] < datosC[2])
+              {
+                for (int o = 0; o < 3; o++) {
+                  datosC[o] = datos[o];
+                }
+                BreakingPoint = true;
+                RESET = B;
+                break;
+              } else
+              {
+                B = RESET;
+                VecesSinCambios += 1;
+              }
+
+            }
+            else
+            {
+              VecesSinCambios +=1;
+            }
+          }
+
+          if(BreakingPoint == true)
           {
-            int indiceDelUsado = B[j][i];
-            if(sgn(indiceDelUsado) == -1){
-              indiceDelUsado = -(indiceDelUsado) - 1;
-            } else {indiceDelUsado -= 1;}
-            //std::cout << "INDICE DEL USADO 2-2--> "<< indiceDelUsado+1  << '\n';
-
-            Encontrados[indiceDelUsado] +=1 ;
-            if (Encontrados[indiceDelUsado] == 2) {
-              valorError = B[j][i];
-              filaError = j;
-              colError = i;
-            }
+            break;
           }
+
         }
 
+        USED = B;
 
-        for (size_t j = 0; j < cantEquipos; j++) {
-          //std::cout << Encontrados[j] << '/';
-          if (Encontrados[j] == 0) {
-            valorFaltante = j+1;
-            flag1 = true;
-          }
+
+
+        if (VecesSinCambios >= (cantEquipos)*(cantEquipos-1)*(cantEquipos-1)) {
+          //std::cout << "/* message */" << '\n';
+          VecesEstancados+=1;
         }
-        //std::cout << '\n';
-
-        if (flag1) {
+        if(BreakingPoint == true)
+        {
           break;
         }
-
-        ColSinErrores +=1;
       }
-       //TENGI EL VALOR A CAMBIAR, LA FILA DONDE CAMBIARLO Y EL VALOR QUE BUSCO.
-       //BUSCO EL VALOR A TRAVES DE LA FILA Y LO INTERCAMBIO CON EL ERROR
-      //std::cout << "VALOR REPETIDO -->"<< valorError<<"  VALOR FALTANTE -->" << valorFaltante<< "  FILA CON DONDE BUSCAR -->" << filaError+1<< '\n';
-      //std::cout << "COLSINERR -->"<<ColSinErrores << '\n';
-      if (ColSinErrores == cantEquipos-1) {
-      //std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
-      }
-      else {
-        for (size_t colu = 0; colu < cantEquipos-1; colu++) {
-          if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
-            //std::cout << "cambio" << '\n';
-            /*
-            int indTemp1 = B[filaError][colu];
-            if(sgn(indTemp1) == -1){
-              indTemp1 = -(indTemp1) - 1;
-            } else {indTemp1 -= 1;}
-
-            int indTemp2 = B[filaError][colError];
-            if(sgn(indTemp2) == -1){
-              indTemp2 = -(indTemp2) - 1;
-            } else {indTemp2 -= 1;}
-            */
-            int valTemp =  B[filaError][colu];
-            //int valTemp2 =  B[indTemp1][colu];
-
-            //B[indTemp1][colu] = B[indTemp2][colError] ;
-            B[filaError][colu] = valorError;
-            //B[indTemp2][colError] = valTemp2;
-            B[filaError][colError] = valTemp;
-
-            USED[filaError][colu] = -500;
-            USED[filaError][colError] = -500;
-
-          }
-        }
-      }
-    ///// VOLVER A EMPEZAR, TERMINAR SI ES QUE NO ENCUENTRA UN VALOR ERROR
-    } while(ColSinErrores < cantEquipos-1);
-  }
-  else{
-
-    //Cuadrante2
-    //Obligatorio
-    int temp = B[x][y];
-    int indice = B[x][y];
-    int Columna2;
-    if(sgn(indice) == -1){
-      indice = -(indice) - 1;
-    }else
-    {
-      indice -=1;
-    }
-    B[x][y] = val;
-    //std::cout << "val- -> " << val << '\n';
-
-    for (int i = cantEquipos-1; i < (cantEquipos-1)*2; i++) {
-      //std::cout << "C[x][i]- -> " << C[x][i] << '\n';
-      // 0 4 -2
-      if(RESET[x][i] ==  val || RESET[x][i] ==  -val){
-        B[x][i] = temp;
-        Columna2 = i;
-        break;
-      }
-    }
-    //Agregar el primer cambio
-    USED[x][y] = -500;
-    USED[x][Columna2] = -500;
-
-
-    do {
-
-      ColSinErrores = 0;
-      bool flag1 = false;
-      int filaError;
-      int valorError;
-      int valorFaltante;
-      int colError;
-      //Recorrer columnas, buscar el error, si pos error no esta usada, buscar el
-      //valor faltante en la fila e intercambiarlos
-      for (int i = cantEquipos-1; i < (cantEquipos-1)*2; i++) { //COLUMNAS
-        std::vector<int> Encontrados(cantEquipos); //Vector de 0 que va aumentando si encuentra clones
-        for (int j = 0; j < cantEquipos; j++) {//FILAS
-
-          if (USED[j][i] == -500)
-          {
-            int indiceDelUsado = B[j][i];
-
-            if(sgn(indiceDelUsado) == -1){
-              indiceDelUsado = -(indiceDelUsado) - 1;
-            } else {indiceDelUsado -= 1;}
-
-            //std::cout << "INDICE DEL USADO 1--> "<< indiceDelUsado+1  << '\n';
-
-            Encontrados[indiceDelUsado] +=1 ;
-
-            if (Encontrados[indiceDelUsado] == 2) {
-              colError = i;
-              for (size_t filas = 0; filas < cantEquipos; filas++) {
-                if (B[filas][i] == B[j][i] ||  B[filas][i] == -(B[j][i])) {
-                  valorError = B[filas][i];
-                  filaError = filas;
-                  break;
-                }
-              }
-            }
-
-          }
-          else
-          {
-            int indiceDelUsado = B[j][i];
-            if(sgn(indiceDelUsado) == -1){
-              indiceDelUsado = -(indiceDelUsado) - 1;
-            } else {indiceDelUsado -= 1;}
-            //std::cout << "INDICE DEL USADO 2-2--> "<< indiceDelUsado+1  << '\n';
-
-            Encontrados[indiceDelUsado] +=1 ;
-            if (Encontrados[indiceDelUsado] == 2) {
-              valorError = B[j][i];
-              filaError = j;
-              colError = i;
-            }
-          }
-        }
-
-
-        for (size_t j = 0; j < cantEquipos; j++) {
-          //std::cout << Encontrados[j] << '/';
-          if (Encontrados[j] == 0) {
-            valorFaltante = j+1;
-            flag1 = true;
-          }
-        }
-        //std::cout << '\n';
-
-        if (flag1) {
-          break;
-        }
-
-        ColSinErrores +=1;
-      }
-
-      if (ColSinErrores == cantEquipos-1) {
-      //std::cout << "NO ERRORES, VOLVER FINALIZAR" << '\n';
-      }
-      else {
-        for (size_t colu = cantEquipos-1; colu < (cantEquipos-1)*2; colu++) {
-          if(B[filaError][colu] == valorFaltante || -(B[filaError][colu]) == valorFaltante){
-
-            int valTemp =  B[filaError][colu];
-            //int valTemp2 =  B[indTemp1][colu];
-
-            //B[indTemp1][colu] = B[indTemp2][colError] ;
-            B[filaError][colu] = valorError;
-            //B[indTemp2][colError] = valTemp2;
-            B[filaError][colError] = valTemp;
-
-            USED[filaError][colu] = -500;
-            USED[filaError][colError] = -500;
-            //USED[indTemp1][colu] = -500;
-            //USED[indTemp2][colError] = -500;
-          }
-        }
-      }
-    ///// VOLVER A EMPEZAR, TERMINAR SI ES QUE NO ENCUENTRA UN VALOR ERROR
-    } while(ColSinErrores < cantEquipos-1);
-  }
-
-  for (size_t i = 0; i < cantEquipos; i++) {
-    for (size_t j = 0; j < (cantEquipos-1)*2; j++) {
-      //std::cout << USED[i][j] << "  ";
-      if(USED[i][j] == -500)
+      if(BreakingPoint == true)
       {
-          int indtemp = B[i][j];
-          int signTemp = -1;
-          if(sgn(indtemp) == -1){
-            signTemp = 1;
-            indtemp = -(indtemp) - 1;
-          } else {indtemp -= 1;}
-
-          B[indtemp][j] = (i+1) * signTemp;
+        break;
       }
     }
-    //std::cout << '\n';
   }
-  //////////////////////////////////////////////////////////////////////////////
 
   datos = CalcularPenCost(cantEquipos,B);
+
   Costo = datos[0];
   Penalidad = datos[0];
   Value = datos[0];
 
-  if(y < cantEquipos-1)
-  {
-    for (size_t i = 0; i < cantEquipos; i++) {
-      for (size_t j = 0; j < (cantEquipos-1); j++) {
-        A[i][j] = B[i][j];
-      }
-    }
-  } else
-  {
-    for (size_t i = 0; i < cantEquipos; i++)
-    {
-      for (size_t j = (cantEquipos-1); j < ((cantEquipos-1)*2); j++)
-       {
-        A[i][j] = B[i][j];
-       }
-    }
-  }
+  A.swap(B);
 
 }
 
@@ -1295,7 +1365,7 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
 
       //EL PRIMERO
       if (j == 0) {
-        if(sgn(indice)==-1){ //Soy visita, me fui de casa
+        if(indice <0){ //Soy visita, me fui de casa
 
           Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
           DondeEstoyAhora = (-indice)-1;
@@ -1305,7 +1375,7 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
       } else
       {
          //LOS DEMAS
-        if(sgn(indice)==-1){
+        if(indice <0){
           //std::cout << "DONDE ESTOY AHOR E INDICE **" <<DondeEstoyAhora <<"**"<< (-indice)-1 <<'\n';
           if(DondeEstoyAhora != i){
             Costo += MATRIZDIST[DondeEstoyAhora][(-indice)-1];
@@ -1317,7 +1387,7 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
             DondeEstoyAhora =  (-indice)-1;
             //std::cout << "COSTO 2.2: " << Costo << " -- indice  :" << indice << '\n';
           }
-        } else if(sgn(indice) == 1){
+        } else if(indice >0){
           if (DondeEstoyAhora != i) {
             Costo += MATRIZDIST[DondeEstoyAhora][i];
             DondeEstoyAhora = i;
@@ -1342,7 +1412,7 @@ void Itinerario::CalcularPenitencia_Costo(int cantEq) {
     conthomestand=0;
     controadtrip=0;
     for (int j = 0; j < ((cantEq-1)*2); j++) {
-      if(sgn(A[i][j]) == 1)
+      if(A[i][j] > 0)
       {
         conthomestand+=1;
         controadtrip=0;
@@ -1383,7 +1453,7 @@ void Itinerario::ImprimirRespuesta(int n){
     std::cout << "  " << i << "  ";
     for (int j = 0; j < n; j++) {
       int indice = A[j][i];
-      if(sgn(indice) == -1)
+      if(indice <0)
       {
         std::cout << " " << "@"<< NL[(-indice) -1] << " ";
       } else {
@@ -1399,7 +1469,6 @@ void Itinerario::ImprimirRespuesta(int n){
 
 
 
-static std::vector<Itinerario> POBLACION;
 vector<int> fisherYatesShuffling(int *arr, int n)
 {
     vector<int> v(n);
@@ -1444,63 +1513,114 @@ void CrearPoblacion(int CantEquipos)
     itinerario.CalcularPenitencia_Costo(CantEquipos);
     POBLACION.push_back(itinerario);
   }
-  std::cout << "$$$$$$$$$$$$$$$$$$$$$$$" << '\n';
-  for (int i = 0; i < CANT_POBL; i++) {
-    std::cout << "HIJO N: " << i << " COSTO : " << POBLACION[i].Costo << " Penalidad : " << POBLACION[i].Penalidad << " Valor : " << POBLACION[i].Value << '\n';
+
+
+}
+
+
+int** CrearMatriz(int fila, int columna)
+{
+  int** matriz = new int*[fila];
+  for (int i = 0; i < columna; i++) {
+    matriz[i] = new int[columna];
+  }
+  return matriz;
+}
+
+void BorrarMatriz(int** matriz,int fila)
+{
+  for (int i = 0; i < fila ; i++) {
+    delete [] matriz[i];
+  delete [] matriz;
   }
 }
 
 
-int main()
+template <typename T>
+  T StringToNumber ( const string &Text )
+  {
+     istringstream ss(Text);
+     T result;
+     return ss >> result ? result : 0;
+  }
+
+
+int main(int argc, char* argv[])
 {
+  time_t start,end;
+  time (&start);
+
   stringstream ss;
+  string input(argv[1]);
   string TipoDeInstancia;
   string NumeroDeInstancia;
   string filepath;
-  cout << "Insertar Instancia (NFL, NL, Super): ";
-  cin >> TipoDeInstancia;
 
-  cout << TipoDeInstancia << '\n'; //debuglog
+  int found = input.find("NFL") ;
+  if ( found != string::npos) {
+    TipoDeInstancia = "NFL";
+    input.replace(found,TipoDeInstancia.length(),"");
+    NumeroDeInstancia = input;
 
-  if(TipoDeInstancia.compare("NFL")==0)
-  {
-    cout << "Insertar numero (16,18): ";
-  } else if(TipoDeInstancia.compare("NL")==0)
-  {
-    cout << "Insertar numero (4,6,8,10,12,14): ";
-  } else if(TipoDeInstancia.compare("Super")==0)
-  {
-    cout << "Insertar numero (4,6,8,10): ";
   }
-  cin >> NumeroDeInstancia;
+  found = input.find("NL") ;
+  if (found != string::npos){
+    TipoDeInstancia = "NL";
+    input.replace(found,TipoDeInstancia.length(),"");
+    NumeroDeInstancia = input;
+
+  }
+  found = input.find("Super") ;
+  if(found != string::npos){
+    TipoDeInstancia = "Super";
+    input.replace(found,TipoDeInstancia.length(),"");
+    NumeroDeInstancia = input;
+
+
+  }
+  int indice;
+  indice =   StringToNumber<int> ( NumeroDeInstancia);
+  std::cout << indice << '\n';
+
+
+
   ss << "instances/" << TipoDeInstancia << "/" << TipoDeInstancia << NumeroDeInstancia << ".txt";
   filepath = ss.str();
   cout << filepath << '\n'; //debuglog
   INSTANCIA = TipoDeInstancia;
   ifstream infile(filepath);
 
-  int indice = stoi( NumeroDeInstancia );
-  int** MatrizDeDistancias = CrearMatriz(indice,indice);
 
+  int** MatrizDeDistancias = CrearMatriz(indice,indice);
   string s;
   int filas = 0;
   while (getline(infile,s))
   {
     //std::cout << line << '\n';
-    size_t pos = 0;
+    int pos = 0;
     string token;
     string delimiter = " ";
     int colum = 0;
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0,pos);
-      MatrizDeDistancias[filas][colum] = stoi( token );
+      MatrizDeDistancias[filas][colum] = StringToNumber<int> ( token);
       s.erase(0, pos + delimiter.length());
       colum++;
     }
-    size_t pos2 = s.find("\n");
+
+    int pos2 = s.find("\n");
     token = s.substr(0,pos2);
-    MatrizDeDistancias[filas][colum] = stoi( token );
+
+    if (colum == indice ) {
+
+      colum = filas;
+      MatrizDeDistancias[filas][colum] = StringToNumber<int> ( token);
+      filas++;;
+      break;
+    }
+
+    MatrizDeDistancias[filas][colum] = StringToNumber<int> ( token);
     filas++;;
 
 
@@ -1511,9 +1631,10 @@ int main()
   //comenzar el algoritmo
   //std::cout << "ALGORTIMO 1" << '\n';
   //POR CANTIDAD DE GENERACIONES
-
+  int HijosNoSatisfechos = 0;
   for (int i = 0; i < CANT_GENS; i++) {
     vector<Itinerario> POBLACIONNUEVA;
+
     int indiceMin1;
     int indiceMin2;
     int min1 = numeric_limits<int>::max();
@@ -1526,6 +1647,9 @@ int main()
     for (int j = 0; j < CANT_POBL; j++)
     {
       int Actual = POBLACION[j].Value;
+      if (POBLACION[j].Penalidad > 0){
+        HijosNoSatisfechos +=1;
+      }
       promedio += Actual;
       if(Actual < min1)
       {
@@ -1545,6 +1669,7 @@ int main()
       }
     }
     //std::cout << "INDICE 1 Y 2 " << indiceMin1 << " " <<  indiceMin2<< '\n';
+
     promedio = promedio/CANT_POBL;
     POBLACIONNUEVA.push_back(POBLACION[indiceMin1]);
     POBLACIONNUEVA.push_back(POBLACION[indiceMin2]);
@@ -1552,8 +1677,8 @@ int main()
 
     //POR CANTIDAD DE INDIVIDUOS
     std::cout << " ################ GENERACION "<< i << "  ################"<< '\n';
-    std::cout << "HIJO ELITISTA " <<1 << " COSTO : "<< POBLACION[indiceMin1].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin1].Penalidad << " Valor : " << POBLACION[indiceMin1].Value << '\n';
-    std::cout << "HIJO ELITISTA " <<2 << " COSTO : "<< POBLACION[indiceMin2].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin2].Penalidad << " Valor : " << POBLACION[indiceMin2].Value << '\n';
+    //std::cout << "HIJO ELITISTA " <<1 << " COSTO : "<< POBLACION[indiceMin1].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin1].Penalidad << " Valor : " << POBLACION[indiceMin1].Value << '\n';
+    //std::cout << "HIJO ELITISTA " <<2 << " COSTO : "<< POBLACION[indiceMin2].Costo <<" PENALIDAD :  "<< POBLACION[indiceMin2].Penalidad << " Valor : " << POBLACION[indiceMin2].Value << '\n';
 
     do {
       //Elegir 2 miembros al azar y aplicar mutacion
@@ -1574,45 +1699,17 @@ int main()
         Itinerario hijo = Mutacion(padre1,padre2,indice);
 
         //Aplicar busqueda local al Hijo Y Evaluar
-        std::cout << "*********VALUEANTES: " << hijo.Value << '\n';
+        //std::cout << "*********VALUEANTES: " << hijo.Value << '\n';
         hijo.SWAPHOMES();
         hijo.SWAPROUNDS();
-
-
-        for (size_t i = 0; i < ((indice/2)-1); i++) {
-          int index1 = rand()%indice;
-          int index2 = rand()%(indice-1);
-          int index3 = rand()%(indice-1);
-          do {
-             index3 = rand()%(indice-1);
-          } while(index2 == index3);
-          int ValorEnIndice = hijo.A[index1][index3];
-          hijo.SWAPMATCH(index1,index2,ValorEnIndice);
-        }
-
-        for (size_t i = 0; i < ((indice/2)-1); i++) {
-          int index1 = rand()%indice;
-          int index2 = (rand()%(indice-1)) +(indice-1);
-          int index3 = (rand()%(indice-1)) +(indice-1);
-          do {
-             index3 = rand()%(indice-1)+(indice-1);
-          } while(index2 == index3);
-          int ValorEnIndice = hijo.A[index1][index3];
-          hijo.SWAPMATCH(index1,index2,ValorEnIndice);
-        }
-
-
-
-
-
+        hijo.SWAPMATCH();
         hijo.SWAPHOMES();
-        hijo.SWAPROUNDS();
 
-        std::cout << "*********VALUEDESPUES: " << hijo.Value << '\n';
+        //std::cout << "*********VALUEDESPUES: " << hijo.Value << '\n';
         hijo.CalcularPenitencia_Costo(indice);
 
         //Agregar a La nueva poblacion
-        std::cout << "HIJO " <<IndividuosEnPoblacionNueva+1 << " COSTO : "<< hijo.Costo <<" PENALIDAD :  "<< hijo.Penalidad << " Valor : " << hijo.Value << '\n';
+        //std::cout << "HIJO " <<IndividuosEnPoblacionNueva+1 << " COSTO : "<< hijo.Costo <<" PENALIDAD :  "<< hijo.Penalidad << " Valor : " << hijo.Value << '\n';
         POBLACIONNUEVA.push_back(hijo);
         IndividuosEnPoblacionNueva += 1;
 
@@ -1630,31 +1727,20 @@ int main()
 
   int menor = numeric_limits<int>::max();;
   int indiceDelMenor;
-  for (size_t i = 0; i < CANT_POBL; i++) {
+  for (int i = 0; i < CANT_POBL; i++) {
     if(POBLACION[i].Value < menor){
       menor = POBLACION[i].Value;
       indiceDelMenor = i;
     }
   }
-
-  std::cout << " \n EL MEJOR MIEMBRO DE LA ULTIMA POBLACION, TIENE UN VALOR DE : " << POBLACION[indiceDelMenor].Value << '\n';
+  time (&end);
+  double dif = difftime (end,start);
+  printf ("Tiempo de ejeucion -->  %.2lf segundos.", dif );
+  std::cout << "\nHijos con penalidades (no satisfechos) en total --> "<< HijosNoSatisfechos << '\n';
+  std::cout << " \nEL HIJO " << indiceDelMenor << " ES EL MENOR Y TIENE UN COSTO TOTAL DE --> " << POBLACION[indiceDelMenor].Value << '\n';
   POBLACION[indiceDelMenor].ImprimirRespuesta(indice);
-    std::cout << "///////////////////////////////////////" << '\n';
-    for (int i = 0; i < indice; i++) {
-      for (int j = 0; j < (indice-1)*2; j++) {
-        std::cout << POBLACION[indiceDelMenor].A[i][j] << "   ";
-      }
-      std::cout << '\n';
-    }
-    std::cout << "///////////////////////////////////////" << '\n';
 
-    POBLACION[indiceDelMenor].CalcularPenitencia_Costo(indice);
 
-    POBLACION[indiceDelMenor].SWAPROUNDS();
-
-    std::cout << "///////////////////////////////////////" << '\n';
-
-    POBLACION[indiceDelMenor].ImprimirRespuesta(indice);
 
 
 
